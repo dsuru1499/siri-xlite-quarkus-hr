@@ -1,0 +1,30 @@
+version: "3.3"
+services:
+
+  postgres:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=siri-xlite
+      - POSTGRES_PASSWORD=siri-xlite
+      - POSTGRES_DB=siri-xlite
+
+  siri-xlite:
+    build:
+      context: "../../../"
+      dockerfile: "src/main/docker/siri-xlite/Dockerfile"
+    depends_on:
+      - "postgres"
+    ports:
+      - "8080:8080"
+
+  nuster:
+    build:
+      context: "../../../"
+      dockerfile: "src/main/docker/nuster/Dockerfile"
+    depends_on:
+      - "siri-xlite"
+    ports:
+      - "80:80"
+      - "443:443"

@@ -1,0 +1,58 @@
+# server configuration
+quarkus:
+
+  datasource:
+    db-kind: postgresql
+    username: siri-xlite
+    password: siri-xlite
+    jdbc:
+      url: jdbc:postgresql://postgres/siri-xlite
+
+  flyway:
+    migrate-at-start: false
+    schemas: public
+
+  hibernate-orm:
+    database:
+      generation: none
+    fetch:
+      batch-size: 100
+    log:
+      sql: true
+      format-sql: true
+    cache:
+      line:
+        memory:
+          object-count: 2000
+        expiration:
+          max-idle: 600
+      stoppoint:
+        memory:
+          object-count: 100000
+        expiration:
+          max-idle: 600
+
+  infinispan-embedded:
+    xml-config: infinispan.xml
+
+# application configuration
+siri-xlite:
+  port: 8443
+  lines-discovery:
+    max-age: 30
+    s-maxage: 3600
+  stoppoints-discovery:
+    max-age: 30
+    s-maxage: 3600
+  stop-monitoring:
+    max-age: 30
+    s-maxage: 600
+  estimated-timetable:
+    max-age: 30
+    s-maxage: 600
+  estimated-vehicle-journey:
+    max-age: 30
+    s-maxage: 60
+
+  log:
+    category:
