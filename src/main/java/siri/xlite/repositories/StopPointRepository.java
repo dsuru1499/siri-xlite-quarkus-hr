@@ -35,17 +35,17 @@ import static siri.xlite.common.OSMUtils.*;
                 name = "StopPoint_findByMonitoringRef",
                 resultClass = StopPoint.class,
                 query = "with recursive r_stoppoint(stoppointref, parent) " +
-                        "as ( "+
-                        "    select s.stoppointref, s.parent "+
-                        "    from stoppoint s where s.stoppointref= :id "+
-                        "union all "  +
-                        "    select  o.stoppointref, o.parent "+
-                        "    from r_stoppoint r "+
-                        "   join stoppoint o on o.parent=r.stoppointref "+
+                        "as ( " +
+                        "    select s.stoppointref, s.parent " +
+                        "    from stoppoint s where s.stoppointref= :id " +
+                        "union all " +
+                        "    select  o.stoppointref, o.parent " +
+                        "    from r_stoppoint r " +
+                        "   join stoppoint o on o.parent=r.stoppointref " +
                         ") " +
                         "select * from stoppoint s " +
                         "join r_stoppoint r on s.stoppointref=r.stoppointref "
-                )
+        )
 })
 @ApplicationScoped
 public class StopPointRepository extends ReactiveRepository<StopPoint, String> {
@@ -116,7 +116,6 @@ public class StopPointRepository extends ReactiveRepository<StopPoint, String> {
 
     private RTree<String, Point> rtree() {
         if (rtree == null) {
-            log.info(messages.getString(LOAD_FROM_BACKEND), "rtree");
             rtree = RTree.star().maxChildren(32).create();
             Iterable<StopPoint> stopPoints = find().subscribe().asIterable();
             for (StopPoint t : stopPoints) {

@@ -52,11 +52,11 @@ public class VehicleJourneyRepository extends ReactiveRepository<VehicleJourney,
         CriteriaQuery<VehicleJourney> query = builder.createQuery(type);
 
         Root<VehicleJourney> root = query.from(type);
-        root.fetch(VehicleJourney_.line);
+        root.fetch(VehicleJourney_.line, JoinType.LEFT);
         root.fetch(VehicleJourney_.vias, JoinType.LEFT);
         root.fetch(VehicleJourney_.journeyParts, JoinType.LEFT);
         Fetch<VehicleJourney, Call> call = root.fetch(VehicleJourney_.calls, JoinType.LEFT);
-        call.fetch(Call_.stopPoint);
+        call.fetch(Call_.stopPoint, JoinType.LEFT);
 
         Predicate predicate = builder.equal(root.get(VehicleJourney_.datedVehicleJourneyRef), id);
 
@@ -73,11 +73,11 @@ public class VehicleJourneyRepository extends ReactiveRepository<VehicleJourney,
         CriteriaQuery<VehicleJourney> query = builder.createQuery(type);
 
         Root<VehicleJourney> root = query.from(type);
-        root.fetch(VehicleJourney_.line);
+        Join<VehicleJourney, Line> line = (Join<VehicleJourney, Line>) root.fetch(VehicleJourney_.line,  JoinType.LEFT);
         Fetch<VehicleJourney, Call> call = root.fetch(VehicleJourney_.calls, JoinType.LEFT);
-        call.fetch(Call_.stopPoint);
+        call.fetch(Call_.stopPoint, JoinType.LEFT);
 
-        Predicate linePredicate = builder.equal(root.get(VehicleJourney_.line), lineRef);
+        Predicate linePredicate = builder.equal(line.get(Line_.lineRef), lineRef);
         Expression<Time> now = builder.currentTime();
         Predicate destinationExpectedArrivalTime = builder.greaterThan(root.get(VehicleJourney_.destinationExpectedArrivalTime), now);
 

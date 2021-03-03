@@ -19,6 +19,8 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.ResourceBundle;
 
+import static siri.xlite.service.estimated_timetable.EstimatedTimetableParameters.LINE_REF;
+
 @SuppressWarnings("unused")
 @Slf4j
 @NoArgsConstructor
@@ -34,7 +36,8 @@ public class EstimatedTimetableService extends SiriService implements EstimatedT
     @Inject
     EtagsRepository cache;
 
-    @Route(path = APPLICATION + SEP + ESTIMATED_TIMETABLE, methods = HttpMethod.GET, type = Route.HandlerType.BLOCKING)
+    @Route(path = APPLICATION + SEP + ESTIMATED_TIMETABLE + SEP + COLON + LINE_REF,
+            methods = HttpMethod.GET, type = Route.HandlerType.BLOCKING)
     public void handle(final RoutingContext context) {
         try {
             Monitor monitor = MonitorFactory.start(ESTIMATED_TIMETABLE);

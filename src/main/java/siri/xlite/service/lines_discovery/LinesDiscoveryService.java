@@ -6,7 +6,10 @@ import io.quarkus.vertx.web.Route;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.FaviconHandler;
+import io.vertx.ext.web.handler.StaticHandler;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import siri.xlite.Configuration;
@@ -16,6 +19,7 @@ import siri.xlite.repositories.EtagsRepository;
 import siri.xlite.repositories.LineRepository;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import java.util.Date;
 import java.util.ResourceBundle;
@@ -35,7 +39,8 @@ public class LinesDiscoveryService extends SiriService implements LinesDiscovery
     @Inject
     EtagsRepository cache;
 
-    @Route(path = APPLICATION + SEP + LINES_DISCOVERY, methods = HttpMethod.GET, type = Route.HandlerType.BLOCKING)
+    @Route(path = APPLICATION + SEP + LINES_DISCOVERY,
+            methods = HttpMethod.GET, type = Route.HandlerType.BLOCKING)
     public void handle(RoutingContext context) {
 
         try {

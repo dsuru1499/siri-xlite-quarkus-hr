@@ -37,7 +37,8 @@ public class StopPointsDiscoveryService extends SiriService implements StopPoint
 
     @Route(path = APPLICATION + SEP + STOPPOINTS_DISCOVERY + SEP + COLON + X_TILE + SEP + COLON + Y_TILE,
             methods = HttpMethod.GET, type = Route.HandlerType.BLOCKING)
-    @Route(path = APPLICATION + SEP + STOPPOINTS_DISCOVERY, methods = HttpMethod.GET, type = Route.HandlerType.BLOCKING)
+    @Route(path = APPLICATION + SEP + STOPPOINTS_DISCOVERY,
+            methods = HttpMethod.GET, type = Route.HandlerType.BLOCKING)
     public void handle(RoutingContext context) {
         try {
             Monitor monitor = MonitorFactory.start(STOPPOINTS_DISCOVERY);

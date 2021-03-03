@@ -20,6 +20,7 @@ import java.util.Date;
 import java.util.ResourceBundle;
 
 import static siri.xlite.common.Messages.LOAD_FROM_BACKEND;
+import static siri.xlite.service.estimated_vehicule_journey.EstimatedVehiculeJourneyParameters.DATED_VEHICLE_JOURNEY_REF;
 
 @SuppressWarnings("unused")
 @Slf4j
@@ -36,7 +37,8 @@ public class EstimatedVehiculeJourneyService extends SiriService implements Esti
     @Inject
     EtagsRepository cache;
 
-    @Route(path = APPLICATION + SEP + ESTIMATED_VEHICLE_JOURNEY, methods = HttpMethod.GET, type = Route.HandlerType.BLOCKING)
+    @Route(path = APPLICATION + SEP + ESTIMATED_VEHICLE_JOURNEY+ SEP + COLON + DATED_VEHICLE_JOURNEY_REF,
+            methods = HttpMethod.GET, type = Route.HandlerType.BLOCKING)
     public void handle(RoutingContext context) {
         try {
             Monitor monitor = MonitorFactory.start(ESTIMATED_VEHICLE_JOURNEY);

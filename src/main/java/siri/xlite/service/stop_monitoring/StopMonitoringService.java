@@ -23,6 +23,8 @@ import javax.inject.Inject;
 import java.util.Comparator;
 import java.util.ResourceBundle;
 
+import static siri.xlite.service.stop_monitoring.StopMonitoringParameters.MONITORING_REF;
+
 @SuppressWarnings("unused")
 @Slf4j
 @NoArgsConstructor
@@ -40,7 +42,8 @@ public class StopMonitoringService extends SiriService implements StopMonitoring
     @Inject
     EtagsRepository cache;
 
-    @Route(path = APPLICATION + SEP + STOP_MONITORING, methods = HttpMethod.GET, type = Route.HandlerType.BLOCKING)
+    @Route(path = APPLICATION + SEP + STOP_MONITORING+ SEP + COLON + MONITORING_REF,
+            methods = HttpMethod.GET, type = Route.HandlerType.BLOCKING)
     public void handle(final RoutingContext context) {
         try {
             Monitor monitor = MonitorFactory.start(STOP_MONITORING);

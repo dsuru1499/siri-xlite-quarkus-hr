@@ -12,7 +12,9 @@ import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
 import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.FlywayException;
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
 import siri.xlite.common.Color;
@@ -29,6 +31,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.DayOfWeek;
@@ -64,21 +67,44 @@ public class Initializer {
     @PostConstruct
     void onStartup() {
         checkMigration();
-        String temp = System.getProperty("java.io.tmpdir");
-        Path path = Paths.get(temp, OUTPUT_DIR);
-        if (Files.notExists(path)) {
+        Date now = new Date();
+        Date version = checkVersion();
+        if (!DateUtils.isSameDay(now, version)) {
             initialize();
         }
 //        initialize();
     }
 
     public void checkMigration() {
-//        flyway.clean();
-        flyway.baseline();
-        flyway.migrate();
-        log.info(Color.GREEN + "[DSU] database version : " + flyway.info().current().getVersion().toString() + Color.NORMAL);
+        try {
+//            flyway.clean();
+            if (flyway.info() == null) {
+                flyway.clean();
+            }
+            flyway.migrate();
+            log.info(Color.GREEN + "[DSU] database version : " + flyway.info().current().getVersion().toString() + Color.NORMAL);
+        } catch (FlywayException e) {
+            log.error(e.getMessage(), e);
+        }
+
     }
 
+    private Date checkVersion() {
+        Date result = new Date(0);
+        try (Connection connection = dataSource.getConnection()
+        ) {
+            Statement statement = connection.createStatement();
+            String sql = "SELECT MAX(recordedattime) FROM line";
+            System.out.println(sql);
+            ResultSet rs = statement.executeQuery(sql);
+            if (rs.next()) {
+                result = (rs.getDate(1) != null) ? rs.getDate(1) : new Date(0);
+            }
+        } catch (SQLException e) {
+            log.error(e.getMessage(), e);
+        }
+        return result;
+    }
 
     // @Scheduled(cron = "0 0 3 * * *", zone = "Europe/Paris")
     public void initialize() {
@@ -86,13 +112,6 @@ public class Initializer {
         log.info(Color.YELLOW + "[DSU] initialize model (~ 2mn) " + Color.NORMAL);
 
         importer = inporter();
-//        importer.getRouteById();
-//        importer.getStopById();
-//        importer.getAgencyById();
-//        importer.getCalendarByService();
-//        importer.getCalendarDateByService();
-//        importer.getTripByRoute();
-//        importer.getStopTimeByTrip();
 
         truncate();
         fillVehicleJourney();
@@ -142,10 +161,10 @@ public class Initializer {
             copy(LineBuilder.table(), LineBuilder.columns(), path(LineBuilder.table()));
             copy(StopPointBuilder.table(), StopPointBuilder.columns(), path(StopPointBuilder.table()));
             copy(DestinationBuilder.table(), DestinationBuilder.columns(), path(DestinationBuilder.table()));
-            setval(DestinationBuilder.table());
+            updateSequence(DestinationBuilder.table());
             copy(VehicleJourneyBuilder.table(), VehicleJourneyBuilder.columns(), path(VehicleJourneyBuilder.table()));
             copy(CallBuilder.table(), CallBuilder.columns(), path(CallBuilder.table()));
-            setval(CallBuilder.table());
+            updateSequence(CallBuilder.table());
         } catch (IOException | SQLException e) {
             log.error(e.getMessage(), e);
         }
@@ -259,6 +278,7 @@ public class Initializer {
                             vehicleJourneyBuilder.originRef(stop.stopId());
                             vehicleJourneyBuilder.originName(stop.stopName());
                             vehicleJourneyBuilder.originAimedDepartureTime(stopTime.departureTime().time());
+                            vehicleJourneyBuilder.originExpectedDepartureTime(stopTime.departureTime().time());
                             vehicleJourneyBuilder.originDisplay(stop.stopName());
                         }
 
@@ -266,6 +286,7 @@ public class Initializer {
                             vehicleJourneyBuilder.destinationRef(stop.stopId());
                             vehicleJourneyBuilder.destinationName(stop.stopName());
                             vehicleJourneyBuilder.destinationAimedArrivalTime(stopTime.arrivalTime().time());
+                            vehicleJourneyBuilder.destinationExpectedArrivalTime(stopTime.arrivalTime().time());
                             vehicleJourneyBuilder.destinationDisplay(stop.stopName());
 
                             Map<String, String> destination = new HashMap<>();
@@ -277,6 +298,8 @@ public class Initializer {
                         java.sql.Time aimedArrivalTime = stopTime.arrivalTime().time();
                         java.sql.Time aimedDepartureTime = stopTime.departureTime().time();
                         callBuilder.id(id++)
+                                .datedVehicleJourneyRef(trip.tripId())
+                                .index(i)
                                 .aimedArrivalTime(aimedArrivalTime)
                                 .expectedArrivalTime(aimedArrivalTime)
                                 .actualArrivalTime(aimedArrivalTime)
@@ -307,8 +330,7 @@ public class Initializer {
 
         final Monitor monitor = MonitorFactory.start(DestinationBuilder.table());
 
-        try (BufferedWriter writer = Files.newBufferedWriter(path(DestinationBuilder.table()), StandardCharsets.UTF_8);
-             Connection connection = dataSource.getConnection()) {
+        try (BufferedWriter writer = Files.newBufferedWriter(path(DestinationBuilder.table()), StandardCharsets.UTF_8)) {
             DestinationBuilder.CsvBuilder builder = DestinationBuilder.builder();
 
             int id = 1;
@@ -323,7 +345,7 @@ public class Initializer {
                         .build();
                 writer.write(text);
             }
-        } catch (IOException | SQLException e) {
+        } catch (IOException e) {
             log.error(e.getMessage(), e);
         } finally {
             log.info(Color.YELLOW + monitor.stop() + Color.NORMAL);
@@ -410,16 +432,10 @@ public class Initializer {
         String sql1 = String.format(TRUNCATE, table);
         System.out.println(sql1);
         statement1.executeUpdate(sql1);
-
-//        Statement statement2 = connection.createStatement();
-//        String sql2 = String.format(SEQUENCE, table);
-//        System.out.println(sql2);
-//        statement2.executeUpdate(sql2);
-
         connection.commit();
     }
 
-    private void setval(String table) throws SQLException {
+    private void updateSequence(String table) throws SQLException {
         final Monitor monitor = MonitorFactory.start(table);
         try (Connection connection = dataSource.getConnection()
         ) {
