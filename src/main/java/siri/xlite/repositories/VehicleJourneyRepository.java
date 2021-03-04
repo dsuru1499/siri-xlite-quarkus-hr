@@ -5,6 +5,7 @@ import io.smallrye.mutiny.Uni;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.NamedNativeQueries;
 import org.hibernate.annotations.NamedNativeQuery;
+import org.hibernate.reactive.mutiny.Mutiny.Session;
 import siri.xlite.model.*;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -47,37 +48,36 @@ public class VehicleJourneyRepository extends ReactiveRepository<VehicleJourney,
         super(VehicleJourney.class, String.class);
     }
 
-    public Uni<VehicleJourney> find(String id) {
-        CriteriaBuilder builder = entityManager.getCriteriaBuilder();
+    public Uni<VehicleJourney> find( String id) {
+        CriteriaBuilder builder = factory.getCriteriaBuilder();
         CriteriaQuery<VehicleJourney> query = builder.createQuery(type);
 
         Root<VehicleJourney> root = query.from(type);
-        root.fetch(VehicleJourney_.line, JoinType.LEFT);
-        root.fetch(VehicleJourney_.vias, JoinType.LEFT);
-        root.fetch(VehicleJourney_.journeyParts, JoinType.LEFT);
+        Fetch<VehicleJourney, Line> line = root.fetch(VehicleJourney_.line);
+        Fetch<VehicleJourney, Via> via = root.fetch(VehicleJourney_.vias, JoinType.LEFT);
+        Fetch<VehicleJourney, JourneyPart> journeyPart = root.fetch(VehicleJourney_.journeyParts, JoinType.LEFT);
         Fetch<VehicleJourney, Call> call = root.fetch(VehicleJourney_.calls, JoinType.LEFT);
-        call.fetch(Call_.stopPoint, JoinType.LEFT);
+        Fetch<Call, StopPoint> stopPoint = call.fetch(Call_.stopPoint);
 
         Predicate predicate = builder.equal(root.get(VehicleJourney_.datedVehicleJourneyRef), id);
 
         CriteriaQuery<VehicleJourney> criteria = query.select(root).distinct(true)
                 .where(predicate);
 
-        VehicleJourney result = entityManager.createQuery(criteria).getSingleResult();
-        return Uni.createFrom().item(result);
+        return session.createQuery(criteria).getSingleResult();
 
     }
 
-    public Multi<VehicleJourney> findByLineRef(String lineRef) {
-        CriteriaBuilder builder = entityManager.getCriteriaBuilder();
+    public Multi<VehicleJourney> findByLineRef( String lineRef) {
+        CriteriaBuilder builder = factory.getCriteriaBuilder();
         CriteriaQuery<VehicleJourney> query = builder.createQuery(type);
 
         Root<VehicleJourney> root = query.from(type);
-        Join<VehicleJourney, Line> line = (Join<VehicleJourney, Line>) root.fetch(VehicleJourney_.line,  JoinType.LEFT);
+        Fetch<VehicleJourney, Line> line = root.fetch(VehicleJourney_.line);
         Fetch<VehicleJourney, Call> call = root.fetch(VehicleJourney_.calls, JoinType.LEFT);
-        call.fetch(Call_.stopPoint, JoinType.LEFT);
+        Fetch<Call, StopPoint> stopPoint = call.fetch(Call_.stopPoint);
 
-        Predicate linePredicate = builder.equal(line.get(Line_.lineRef), lineRef);
+        Predicate linePredicate = builder.equal(root.get(VehicleJourney_.line), lineRef);
         Expression<Time> now = builder.currentTime();
         Predicate destinationExpectedArrivalTime = builder.greaterThan(root.get(VehicleJourney_.destinationExpectedArrivalTime), now);
 
@@ -85,20 +85,17 @@ public class VehicleJourneyRepository extends ReactiveRepository<VehicleJourney,
                 .where(builder.and(linePredicate, destinationExpectedArrivalTime))
                 .orderBy(builder.asc(root.get(VehicleJourney_.originExpectedDepartureTime)));
 
-        List<VehicleJourney> result = entityManager.createQuery(criteria).getResultList();
-        return Multi.createFrom().iterable(result);
+        return session.createQuery(criteria).getResults();
     }
 
 
-    public Multi<VehicleJourney> findByStopPointRefs(List<String> stopPointRefs) {
-        CriteriaBuilder builder = entityManager.getCriteriaBuilder();
+    public Multi<VehicleJourney> findByStopPointRefs( List<String> stopPointRefs) {
+        CriteriaBuilder builder = factory.getCriteriaBuilder();
         CriteriaQuery<VehicleJourney> query = builder.createQuery(type);
 
         Root<VehicleJourney> root = query.from(type);
-        root.fetch(VehicleJourney_.line, JoinType.LEFT);
-        @SuppressWarnings("unchecked")
+        Join<VehicleJourney, Line> line = (Join<VehicleJourney, Line>) root.fetch(VehicleJourney_.line, JoinType.LEFT);
         Join<VehicleJourney, Call> call = (Join<VehicleJourney, Call>) root.fetch(VehicleJourney_.calls);
-        @SuppressWarnings("unchecked")
         Join<Call, StopPoint> stopPoint = (Join<Call, StopPoint>) call.fetch(Call_.stopPoint, JoinType.LEFT);
 
         Predicate stopPointPredicate = stopPoint.get(StopPoint_.stopPointRef).in(stopPointRefs);
@@ -110,15 +107,13 @@ public class VehicleJourneyRepository extends ReactiveRepository<VehicleJourney,
                 .where(builder.and(stopPointPredicate, expectedDepartureTimePredicate))
                 .orderBy(builder.asc(call.get(Call_.expectedDepartureTime)));
 
-        List<VehicleJourney> result = entityManager.createQuery(criteria).getResultList();
-        return Multi.createFrom().iterable(result);
+        return session.createQuery(criteria).getResults();
     }
 
     @SuppressWarnings("unused")
-    public Multi<VehicleJourney> findByMonitoringRef(String monitoringRef) {
-        List<VehicleJourney> result = entityManager.createNamedQuery("VehicleJourney_findByMonitoringRef", VehicleJourney.class)
+    public Multi<VehicleJourney> findByMonitoringRef( String monitoringRef) {
+        return  session.createNamedQuery("VehicleJourney_findByMonitoringRef", VehicleJourney.class)
                 .setParameter("id", monitoringRef)
-                .getResultList();
-        return Multi.createFrom().iterable(result);
+                .getResults();
     }
 }

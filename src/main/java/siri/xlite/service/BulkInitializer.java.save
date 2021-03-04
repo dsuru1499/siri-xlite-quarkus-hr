@@ -44,7 +44,7 @@ import java.util.Map;
 @Slf4j
 @Startup
 @ApplicationScoped
-public class Initializer {
+public class BulkInitializer {
     public static final String TRUNCATE = "TRUNCATE TABLE %s CASCADE";
     public static final String CURRVAL = "SELECT currval('%1$s_seq')";
     public static final String COPY = "COPY %1$s %2$s FROM STDIN WITH CSV";

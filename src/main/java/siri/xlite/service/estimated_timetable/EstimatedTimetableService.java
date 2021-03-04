@@ -9,6 +9,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.reactive.mutiny.Mutiny.SessionFactory;
 import siri.xlite.Configuration;
 import siri.xlite.common.*;
 import siri.xlite.model.VehicleJourney;
@@ -30,6 +31,9 @@ public class EstimatedTimetableService extends SiriService implements EstimatedT
             .getBundle(Messages.class.getPackageName() + ".Messages");
 
     @Inject
+    protected SessionFactory factory;
+
+    @Inject
     Configuration configuration;
     @Inject
     VehicleJourneyRepository repository;
@@ -44,8 +48,8 @@ public class EstimatedTimetableService extends SiriService implements EstimatedT
             // log(context.request());
 
             final EstimatedTimetableSubscriber subscriber = new EstimatedTimetableSubscriber();
-            Multi<VehicleJourney> result = configure(subscriber, context)
-                    .onItem().transformToMulti(t -> stream(t, context))
+            Multi<VehicleJourney> result = configure(subscriber, context).onItem()
+                    .transformToMulti(t -> stream(t, context))
                     .call(() -> onComplete(subscriber, context))
                     .onTermination().invoke(() -> log.info(Color.YELLOW + monitor.stop() + Color.NORMAL));
             result.subscribe(subscriber);
@@ -54,7 +58,8 @@ public class EstimatedTimetableService extends SiriService implements EstimatedT
         }
     }
 
-    private Uni<EstimatedTimetableParameters> configure(EstimatedTimetableSubscriber subscriber, RoutingContext context) {
+    private Uni<EstimatedTimetableParameters> configure(EstimatedTimetableSubscriber subscriber,
+                                                        RoutingContext context) {
         try {
             EstimatedTimetableParameters result = ParametersFactory.create(EstimatedTimetableParameters.class,
                     configuration, context);
@@ -65,7 +70,8 @@ public class EstimatedTimetableService extends SiriService implements EstimatedT
         }
     }
 
-    private Multi<VehicleJourney> stream(EstimatedTimetableParameters parameters, RoutingContext context) throws NotModifiedException {
+    private Multi<VehicleJourney> stream(EstimatedTimetableParameters parameters,
+                                         RoutingContext context) throws NotModifiedException {
         String uri = context.request().uri();
         return repository.findByLineRef(parameters.getLineRef());
     }

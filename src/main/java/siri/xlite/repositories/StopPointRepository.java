@@ -9,6 +9,7 @@ import hu.akarnokd.rxjava.interop.RxJavaInterop;
 import io.reactivex.Observable;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.converters.MultiConverter;
 import io.smallrye.mutiny.converters.multi.FromObservable;
 import lombok.extern.slf4j.Slf4j;
 import siri.xlite.common.Messages;
@@ -21,10 +22,8 @@ import javax.persistence.MappedSuperclass;
 import javax.persistence.NamedNativeQueries;
 import javax.persistence.NamedNativeQuery;
 import javax.persistence.criteria.*;
-import java.util.List;
 import java.util.ResourceBundle;
 
-import static org.hibernate.annotations.QueryHints.CACHEABLE;
 import static siri.xlite.common.Messages.LOAD_FROM_BACKEND;
 import static siri.xlite.common.OSMUtils.*;
 
@@ -62,36 +61,31 @@ public class StopPointRepository extends ReactiveRepository<StopPoint, String> {
     public Multi<StopPoint> find() {
         log.info(messages.getString(LOAD_FROM_BACKEND), "/siri-xlite/stoppoints-discovery");
 
-        CriteriaBuilder builder = entityManager.getCriteriaBuilder();
+        CriteriaBuilder builder = factory.getCriteriaBuilder();
         CriteriaQuery<StopPoint> query = builder.createQuery(type);
         Root<StopPoint> root = query.from(type);
         CriteriaQuery<StopPoint> criteria = query.select(root);
-        List<StopPoint> result = entityManager.createQuery(criteria)
-                .setHint(CACHEABLE, true)
-                .getResultList();
-        return Multi.createFrom().iterable(result);
+        return session.createQuery(criteria).setCacheable(false).getResults();
     }
 
     @SuppressWarnings("unchecked")
     public Multi<StopPoint> findByLocationRTree(double[][] polygon) {
-        return Uni.createFrom().item(rtree()).onItem().transformToMulti(rtree -> {
+        return rtree().onItem().transformToMulti(rtree -> {
             Rectangle rectangle = Geometries.rectangleGeographic(
                     polygon[UPPER_LEFT][X], polygon[BOTTOM_RIGHT][Y],
                     polygon[BOTTOM_RIGHT][X], polygon[UPPER_LEFT][Y]);
 
-            Observable<String> list = RxJavaInterop.toV2Observable(rtree.search(rectangle)
+            Observable<String> result = RxJavaInterop.toV2Observable(rtree.search(rectangle)
                     .map(Entry::value));
-            return Multi.createFrom().converter(FromObservable.INSTANCE, list)
-                    .onItem().transformToUniAndConcatenate(key -> {
-                        StopPoint result = entityManager.find(StopPoint.class, key);
-                        return Uni.createFrom().item(result);
-                    });
+            MultiConverter<? super Observable<String>, String> converter = FromObservable.INSTANCE;
+            return Multi.createFrom().converter(converter, result)
+                    .onItem().transformToUniAndConcatenate(key -> session.find(StopPoint.class, key));
         });
     }
 
     @SuppressWarnings("unused")
     public Multi<StopPoint> findByLocation(double[][] polygon) {
-        CriteriaBuilder builder = entityManager.getCriteriaBuilder();
+        CriteriaBuilder builder = factory.getCriteriaBuilder();
         CriteriaQuery<StopPoint> query = builder.createQuery(type);
         Root<StopPoint> root = query.from(type);
 
@@ -102,28 +96,26 @@ public class StopPointRepository extends ReactiveRepository<StopPoint, String> {
                 builder.between(latitude, polygon[BOTTOM_RIGHT][Y], polygon[UPPER_LEFT][Y]));
 
         CriteriaQuery<StopPoint> criteria = query.select(root).where(predicate);
-        Iterable<StopPoint> result = entityManager.createQuery(criteria).getResultList();
-        return Multi.createFrom().iterable(result);
+        return session.createQuery(criteria).getResults();
     }
 
     public Multi<StopPoint> findByMonitoringRef(String monitoringRef) {
-        List<StopPoint> result = entityManager.createNamedQuery("StopPoint_findByMonitoringRef", StopPoint.class)
+        return session.createNamedQuery("StopPoint_findByMonitoringRef", StopPoint.class)
                 .setParameter("id", monitoringRef)
-                .setHint(CACHEABLE, true)
-                .getResultList();
-        return Multi.createFrom().iterable(result);
+                .getResults();
     }
 
-    private RTree<String, Point> rtree() {
+    private Uni<RTree<String, Point>> rtree() {
         if (rtree == null) {
             rtree = RTree.star().maxChildren(32).create();
-            Iterable<StopPoint> stopPoints = find().subscribe().asIterable();
-            for (StopPoint t : stopPoints) {
+        }
+        if (rtree.isEmpty()) {
+            return find().invoke(t -> {
                 Point point = Geometries.pointGeographic(t.location().longitude().floatValue(), t.location().latitude().floatValue());
                 rtree = rtree.add(t.stopPointRef(), point);
-            }
+            }).collect().asList().chain(() -> Uni.createFrom().item(rtree));
         }
-        return rtree;
+        return Uni.createFrom().item(rtree);
     }
 
     @SuppressWarnings("unused")

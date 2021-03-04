@@ -9,6 +9,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.reactive.mutiny.Mutiny.SessionFactory;
 import siri.xlite.Configuration;
 import siri.xlite.common.*;
 import siri.xlite.model.StopPoint;
@@ -29,6 +30,9 @@ public class StopPointsDiscoveryService extends SiriService implements StopPoint
             .getBundle(Messages.class.getPackageName() + ".Messages");
 
     @Inject
+    SessionFactory factory;
+
+    @Inject
     Configuration configuration;
     @Inject
     StopPointRepository repository;
@@ -45,17 +49,16 @@ public class StopPointsDiscoveryService extends SiriService implements StopPoint
             // log(context.request());
 
             final StopPointsDiscoverySubscriber subscriber = new StopPointsDiscoverySubscriber();
-            configure(subscriber, context)
-                    .onItem().transformToMulti(t -> stream(t, context)).onCompletion()
+            configure(subscriber, context).onItem().transformToMulti(t -> stream(t, context)).onCompletion()
                     .call(() -> onComplete(subscriber, context))
-                    .onTermination().invoke(() -> log.info(Color.YELLOW + monitor.stop() + Color.NORMAL))
-                    .subscribe(subscriber);
+                    .onTermination().invoke(() -> log.info(Color.YELLOW + monitor.stop() + Color.NORMAL)).subscribe(subscriber);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
     }
 
-    private Uni<StopPointsDiscoveryParameters> configure(StopPointsDiscoverySubscriber subscriber, RoutingContext context) {
+    private Uni<StopPointsDiscoveryParameters> configure(StopPointsDiscoverySubscriber subscriber,
+                                                         RoutingContext context) {
         try {
             StopPointsDiscoveryParameters result = ParametersFactory.create(StopPointsDiscoveryParameters.class,
                     configuration, context);
@@ -73,7 +76,7 @@ public class StopPointsDiscoveryService extends SiriService implements StopPoint
         cache.validate(uri, lastModified);
         if (parameters.getXtile() != null && parameters.getYtile() != null) {
             double[][] polygon = OSMUtils.location(parameters.getXtile(), parameters.getYtile());
-            return repository.findByLocationRTree(polygon);
+            return repository.findByLocation(polygon);
         }
         return repository.find();
     }

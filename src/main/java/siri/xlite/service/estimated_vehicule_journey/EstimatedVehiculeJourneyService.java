@@ -8,6 +8,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.reactive.mutiny.Mutiny.SessionFactory;
 import siri.xlite.Configuration;
 import siri.xlite.common.*;
 import siri.xlite.model.VehicleJourney;
@@ -31,13 +32,16 @@ public class EstimatedVehiculeJourneyService extends SiriService implements Esti
             .getBundle(Messages.class.getPackageName() + ".Messages");
 
     @Inject
+    protected SessionFactory factory;
+
+    @Inject
     Configuration configuration;
     @Inject
     VehicleJourneyRepository repository;
     @Inject
     EtagsRepository cache;
 
-    @Route(path = APPLICATION + SEP + ESTIMATED_VEHICLE_JOURNEY+ SEP + COLON + DATED_VEHICLE_JOURNEY_REF,
+    @Route(path = APPLICATION + SEP + ESTIMATED_VEHICLE_JOURNEY + SEP + COLON + DATED_VEHICLE_JOURNEY_REF,
             methods = HttpMethod.GET, type = Route.HandlerType.BLOCKING)
     public void handle(RoutingContext context) {
         try {
@@ -47,10 +51,9 @@ public class EstimatedVehiculeJourneyService extends SiriService implements Esti
             final EstimatedVehiculeJourneySubscriber subscriber = new EstimatedVehiculeJourneySubscriber();
             Uni<VehicleJourney> result = configure(subscriber, context)
                     .chain(t -> stream(t, context))
-                    .call(() -> onComplete(subscriber, context))
+                    .invoke(() -> onComplete(subscriber, context))
                     .onTermination().invoke(() -> log.info(Color.YELLOW + monitor.stop() + Color.NORMAL));
             result.subscribe().withSubscriber(new SubscriberWrapper<>(subscriber));
-
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }

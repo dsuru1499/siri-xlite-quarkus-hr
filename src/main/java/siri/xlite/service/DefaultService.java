@@ -2,7 +2,7 @@ package siri.xlite.service;
 
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
-import io.vertx.axle.core.Vertx;
+import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.FaviconHandler;
 import io.vertx.ext.web.handler.StaticHandler;
@@ -33,7 +33,7 @@ public class DefaultService {
         this.router = router;
     }
 
-    void onStart(@Observes StartupEvent ev) {
+    void onStart(@Observes StartupEvent event) {
         log.info(Color.GREEN + String.format("Application %s is starting ...", APPLICATION) + Color.NORMAL);
         router.route().handler(FaviconHandler.create());
         router.route().handler(StaticHandler.create(PUBLIC));

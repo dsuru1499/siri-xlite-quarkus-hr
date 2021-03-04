@@ -1,0 +1,61 @@
+<persistence xmlns="http://java.sun.com/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd"
+             version="2.0">
+
+    <persistence-unit name="default">
+        <provider>org.hibernate.reactive.provider.ReactivePersistenceProvider</provider>
+
+<!--        <class>siri_xlite.model.Line</class>-->
+<!--        <class>siri_xlite.model.Destination</class>-->
+
+<!--        <class>siri_xlite.model.StopPoint</class>-->
+
+<!--        <class>siri_xlite.model.VehicleJourney</class>-->
+<!--        <class>siri_xlite.model.Via</class>-->
+<!--        <class>siri_xlite.model.JourneyPart</class>-->
+<!--        <class>siri_xlite.model.Call</class>-->
+
+<!--        <class>siri_xlite.model.TargetedInterchange</class>-->
+
+        <properties>
+
+            <!-- PostgreSQL -->
+            <property name="javax.persistence.jdbc.url"
+                      value="jdbc:postgresql://localhost/siri-xlite"/>
+
+            <!-- Credentials -->
+            <property name="javax.persistence.jdbc.user" value="siri-xlite"/>
+            <property name="javax.persistence.jdbc.password" value="siri-xlite"/>
+
+            <!-- The Vert.x SQL Client connection pool size -->
+            <property name="hibernate.connection.pool_size" value="10"/>
+            <property name="hibernate.jdbc.batch_size" value="100"/>
+
+            <!-- Automatic schema export -->
+            <property name="javax.persistence.schema-generation.database.action"
+                      value="none"/>
+
+            <!-- SQL statement logging -->
+            <property name="hibernate.show_sql" value="true"/>
+            <property name="hibernate.format_sql" value="true"/>
+            <property name="hibernate.highlight_sql" value="true"/>
+
+            <!--            ! PB collections cache-->
+            <!--            <property name="hibernate.cache.use_second_level_cache" value="true"/>-->
+            <!--            <property name="hibernate.cache.use_query_cache" value="true"/>-->
+
+            <!--            <property name="hibernate.cache.region.factory_class"-->
+            <!--                      value="org.infinispan.hibernate.cache.v53.InfinispanRegionFactory"/>-->
+            <!--            <property name="hibernate.javax.cache.provider" value="org.infinispan.jcache.embedded.JCachingProvider"/>-->
+            <!--            <property name="hibernate.javax.cache.uri" value="/infinispan-jcache.xml"/>-->
+
+            <!--            <property name="hibernate.cache.region.factory_class"-->
+            <!--                      value="org.hibernate.cache.jcache.JCacheRegionFactory"/>-->
+            <!--            <property name="hibernate.javax.cache.provider" value="org.ehcache.jsr107.EhcacheCachingProvider"/>-->
+            <!--            <property name="hibernate.javax.cache.uri" value="/ehcache.xml"/>-->
+
+        </properties>
+
+    </persistence-unit>
+</persistence>

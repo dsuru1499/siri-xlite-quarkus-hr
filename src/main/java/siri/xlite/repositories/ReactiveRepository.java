@@ -1,16 +1,19 @@
 package siri.xlite.repositories;
 
+import org.hibernate.reactive.mutiny.Mutiny;
+
 import javax.inject.Inject;
-import javax.persistence.EntityManager;
 
 public abstract class ReactiveRepository<T, ID> {
 
     protected Class<T> type;
-
     protected Class<ID> id;
 
     @Inject
-    protected EntityManager entityManager;
+    Mutiny.SessionFactory factory;
+
+    @Inject
+    Mutiny.Session session;
 
     protected ReactiveRepository(Class<T> type, Class<ID> id) {
         this.type = type;

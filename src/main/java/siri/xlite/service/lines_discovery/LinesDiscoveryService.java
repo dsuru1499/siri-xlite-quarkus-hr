@@ -6,12 +6,10 @@ import io.quarkus.vertx.web.Route;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.FaviconHandler;
-import io.vertx.ext.web.handler.StaticHandler;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.reactive.mutiny.Mutiny.SessionFactory;
 import siri.xlite.Configuration;
 import siri.xlite.common.*;
 import siri.xlite.model.Line;
@@ -19,7 +17,6 @@ import siri.xlite.repositories.EtagsRepository;
 import siri.xlite.repositories.LineRepository;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import java.util.Date;
 import java.util.ResourceBundle;
@@ -31,6 +28,9 @@ import java.util.ResourceBundle;
 public class LinesDiscoveryService extends SiriService implements LinesDiscovery {
     private static final ResourceBundle messages = ResourceBundle
             .getBundle(Messages.class.getPackageName() + ".Messages");
+
+    @Inject
+    SessionFactory factory;
 
     @Inject
     LineRepository repository;
@@ -51,8 +51,7 @@ public class LinesDiscoveryService extends SiriService implements LinesDiscovery
             configure(subscriber, context)
                     .onItem().transformToMulti(t -> stream(t, context))
                     .onCompletion().call(() -> onComplete(subscriber, context))
-                    .onTermination().invoke(() -> log.info(Color.YELLOW + monitor.stop() + Color.NORMAL))
-                    .subscribe(subscriber);
+                    .onTermination().invoke(() -> log.info(Color.YELLOW + monitor.stop() + Color.NORMAL)).subscribe(subscriber);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
@@ -60,7 +59,8 @@ public class LinesDiscoveryService extends SiriService implements LinesDiscovery
 
     private Uni<LinesDiscoveryParameters> configure(LinesDiscoverySubscriber subscriber, RoutingContext context) {
         try {
-            LinesDiscoveryParameters result = ParametersFactory.create(LinesDiscoveryParameters.class, configuration, context);
+            LinesDiscoveryParameters result = ParametersFactory.create(LinesDiscoveryParameters.class, configuration,
+                    context);
             subscriber.configure(result, context);
             return Uni.createFrom().item(result);
         } catch (Exception e) {

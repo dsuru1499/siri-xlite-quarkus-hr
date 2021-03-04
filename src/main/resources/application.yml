@@ -1,3 +1,5 @@
+
+
 # server configuration
 quarkus:
 
@@ -5,35 +7,25 @@ quarkus:
     db-kind: postgresql
     username: siri-xlite
     password: siri-xlite
-    jdbc:
-      url: jdbc:postgresql://postgres/siri-xlite
-
-  flyway:
-    migrate-at-start: false
-    schemas: public
+#    jdbc:
+#      url: jdbc:postgresql://postgres/siri-xlite
+    reactive:
+      url: vertx-reactive:postgresql://postgres/siri-xlite
 
   hibernate-orm:
+    second-level-caching-enabled: false
+    statement-batch-size: 1000
     database:
       generation: none
-    fetch:
-      batch-size: 100
     log:
       sql: true
-      format-sql: true
-    cache:
-      line:
-        memory:
-          object-count: 2000
-        expiration:
-          max-idle: 600
-      stoppoint:
-        memory:
-          object-count: 100000
-        expiration:
-          max-idle: 600
 
   infinispan-embedded:
     xml-config: infinispan.xml
+
+#  flyway:
+#    migrate-at-start: false
+#    schemas: public
 
 # application configuration
 siri-xlite:

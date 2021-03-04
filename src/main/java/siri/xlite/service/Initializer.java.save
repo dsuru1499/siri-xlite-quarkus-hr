@@ -1,0 +1,401 @@
+package siri.xlite.service;
+
+import com.jamonapi.Monitor;
+import com.jamonapi.MonitorFactory;
+import gtfs.importer.GtfsImporter;
+import gtfs.importer.Index;
+import gtfs.model.Calendar;
+import gtfs.model.*;
+import io.quarkus.runtime.StartupEvent;
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
+import org.apache.commons.compress.utils.IOUtils;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DateUtils;
+import org.hibernate.CacheMode;
+import org.hibernate.reactive.mutiny.Mutiny.Session;
+import org.hibernate.reactive.mutiny.Mutiny.SessionFactory;
+import siri.xlite.common.Color;
+import siri.xlite.common.ZipUtils;
+import siri.xlite.model.*;
+import uk.org.siri.siri.CallStatusEnumeration;
+
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Observes;
+import javax.inject.Inject;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.JoinType;
+import javax.persistence.criteria.Root;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.attribute.FileTime;
+import java.sql.Time;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.util.*;
+import java.util.function.Function;
+
+@Slf4j
+@ApplicationScoped
+public class Initializer {
+    private static final String ARCHIVE = "data.zip";
+    private static final String OUTPUT_DIR = "siri";
+    public static final String FILE_VERSION = "version";
+
+    @Inject
+    SessionFactory factory;
+
+    private GtfsImporter importer;
+    private final MultiValuedMap<String, String> lineRefs = new HashSetValuedHashMap<>();
+    private final MultiValuedMap<String, Destination> destinations = new HashSetValuedHashMap<>();
+
+    void onStart(@Observes StartupEvent event) {
+        try {
+            initialize();
+        } catch (IOException e) {
+            log.error(e.getMessage(), e);
+        }
+    }
+
+    // @Scheduled(cron = "0 0 3 * * *", zone = "Europe/Paris")
+    public void initialize() throws IOException {
+        String temp = System.getProperty("java.io.tmpdir");
+        Path path = Paths.get(temp, OUTPUT_DIR);
+        Monitor monitor = MonitorFactory.start();
+        log.info(Color.YELLOW + "[DSU] initialize model (~ 3mn)" + Color.NORMAL);
+
+        if (checkArchive()) {
+            this.importer = new GtfsImporter(path.toString());
+            clear()
+                    .call(this::fillAnnotatedLine)
+//                    .call(this::fillAnnotatedStopPoint)
+//                    .call(this::fillVehicleJourney)
+//                    .call(this::denormalize)
+                    .await().indefinitely();
+            importer.dispose();
+            Path version = Paths.get(temp, OUTPUT_DIR, FILE_VERSION);
+            File file = FileUtils.getFile(version.toString());
+            FileUtils.touch(file);
+        }
+        log.info(Color.YELLOW + "[DSU] model initialized : " + monitor.stop() + Color.NORMAL);
+    }
+
+    private boolean checkArchive() throws IOException {
+        String temp = System.getProperty("java.io.tmpdir");
+        Path path = Paths.get(temp, OUTPUT_DIR);
+        if (Files.notExists(path)) {
+            extractArchive(path);
+            return true;
+        } else {
+            Path version = Paths.get(temp, OUTPUT_DIR, FILE_VERSION);
+            if (Files.exists(version)) {
+                BasicFileAttributes attributes = Files.readAttributes(version, BasicFileAttributes.class);
+                FileTime creation = attributes.creationTime();
+                if (!DateUtils.isSameDay(new Date(), new Date(creation.toMillis()))) {
+                    Files.delete(version);
+                    return true;
+                }
+            } else {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Uni<Void> truncate(Session session, String name) {
+        final String TRUNCATE = "TRUNCATE TABLE %s CASCADE";
+        String text = String.format(TRUNCATE, name);
+        log.info("[DSU] " + text);
+        return session.createNativeQuery(text)
+                .executeUpdate()
+                .chain(t -> Uni.createFrom().voidItem());
+    }
+
+    private Uni<Void> clear() {
+        final Monitor monitor = MonitorFactory.start("clear");
+
+        Uni<Void> result = factory.withTransaction((session, transaction) -> {
+            return truncate(session, "call")
+                    .chain(() -> truncate(session, "vehiclejourney"))
+                    .chain(() -> truncate(session, "destination"))
+                    .chain(() -> truncate(session, "stoppoint"))
+                    .chain(() -> truncate(session, "line"));
+        });
+
+        return measure(result, monitor);
+    }
+
+    private Uni<Void> fillAnnotatedLine() {
+        final Monitor monitor = MonitorFactory.start("annotated_line");
+
+        Uni<Void> result = factory.withTransaction((session, transaction) -> {
+            final Date now = new Date();
+            session = session.setBatchSize(1000);
+            session = session.setCacheMode(CacheMode.IGNORE);
+
+            Function<Route, Line> create = route -> Line.of().recordedAtTime(now).lineRef(route.routeId())
+                    .lineName(route.routeLongName()).monitored(Boolean.TRUE);
+
+            Iterable<Route> routes = importer.getRouteById();
+            return Multi.createFrom().iterable(routes)
+                    .map(create)
+                    .call(session::persist)
+                    .collect().asList()
+                    .chain(t -> Uni.createFrom().voidItem());
+        });
+
+        return measure(result, monitor);
+    }
+
+    private Uni<Void> fillAnnotatedStopPoint(SessionFactory factory) {
+        final Monitor monitor = MonitorFactory.start("annotated_stoppoint");
+
+        Uni<Void> result = factory.withTransaction((session, transaction) -> {
+            final Date now = new Date();
+            final Map<String, StopPoint> cache = new HashMap<>();
+
+            Function<Stop, StopPoint> create = stop -> {
+                StopPoint cached = cache.get(stop.stopId());
+                if (cached == null) {
+                    cached = StopPoint.of().recordedAtTime(now).stopPointRef(stop.stopId()).stopName(stop.stopName())
+                            .location(Location.of().longitude(stop.stopLon().doubleValue())
+                                    .latitude(stop.stopLat().doubleValue()));
+                    cache.put(cached.stopPointRef(), cached);
+                } else if (cached.recordedAtTime() == null) {
+                    cached.stopName(stop.stopName()).location(Location.of().longitude(stop.stopLon().doubleValue())
+                            .latitude(stop.stopLat().doubleValue()));
+                }
+
+                if (StringUtils.isNotEmpty(stop.parentStation())) {
+                    StopPoint parent = cache.get(stop.parentStation());
+                    if (parent == null) {
+                        parent = StopPoint.of().stopPointRef(stop.parentStation());
+                        cache.put(cached.stopPointRef(), cached);
+                    }
+                    parent.addChildren(cached);
+                }
+
+                return cached;
+            };
+
+            Index<Stop> stops = importer.getStopById();
+            return Multi.createFrom().iterable(stops)
+                    .map(create)
+                    .call(session::persist)
+                    .collect().asList()
+                    .chain(t -> Uni.createFrom().voidItem());
+        });
+
+        return measure(result, monitor);
+    }
+
+    private Multi<Call> createCall(Session session, Trip trip, VehicleJourney vehicleJourney) {
+        Iterable<StopTime> stopTimes = importer.getStopTimeByTrip().values(trip.tripId());
+        Index<Stop> stops = importer.getStopById();
+
+        Iterator<StopTime> iterator = stopTimes.iterator();
+        for (int i = 0; iterator.hasNext(); i++) {
+            StopTime stopTime = iterator.next();
+            Stop stop = stops.getValue(stopTime.stopId());
+            StopPoint stopPoint = session.getReference(StopPoint.class, stopTime.stopId());
+            lineRefs.put(stop.stopId(), trip.routeId());
+
+            if (i == 0) {
+                vehicleJourney.originRef(stopTime.stopId()).originName(stop.stopName())
+                        .originAimedDepartureTime(stopTime.departureTime().time())
+                        .originExpectedDepartureTime(stopTime.departureTime().time())
+                        .originDisplay(stopTime.stopHeadsign());
+
+            } else if (!iterator.hasNext()) {
+                vehicleJourney.destinationRef(stopTime.stopId()).destinationName(stop.stopName())
+                        .destinationAimedArrivalTime(stopTime.arrivalTime().time())
+                        .destinationExpectedArrivalTime(stopTime.arrivalTime().time())
+                        .destinationDisplay(stopTime.stopHeadsign());
+
+                Destination destination = Destination.of().destinationRef(stop.stopId()).placeName(stop.stopName());
+                destinations.put(trip.routeId(), destination);
+            }
+
+            Time aimedArrivalTime = stopTime.arrivalTime().time();
+            Time aimedDepartureTime = stopTime.departureTime().time();
+            Call call = Call.of().stopPoint(stopPoint).aimedArrivalTime(aimedArrivalTime)
+                    .expectedArrivalTime(aimedArrivalTime).actualArrivalTime(aimedArrivalTime)
+                    .aimedDepartureTime(aimedDepartureTime).expectedDepartureTime(aimedDepartureTime)
+                    .actualDepartureTime(aimedDepartureTime).destinationDisplay(stopTime.stopHeadsign())
+                    .order(stopTime.stopSequence() + 1).index(vehicleJourney.calls().size())
+                    .departureStatus(CallStatusEnumeration.ON_TIME.ordinal())
+                    .arrivalStatus(CallStatusEnumeration.ON_TIME.ordinal());
+
+            vehicleJourney.addCall(call);
+        }
+
+        return Multi.createFrom().iterable(vehicleJourney.calls());
+    }
+
+    private Multi<VehicleJourney> createVehicleJourney(Session session, Route route) {
+        Iterable<Trip> trips = importer.getTripByRoute().values(route.routeId());
+
+        Function<? super Trip, Uni<? extends VehicleJourney>> create = (trip) -> {
+            Line reference = session.getReference(Line.class, route.routeId());
+            return Uni.createFrom().item(reference).chain(line -> {
+                final Date now = new Date();
+                Agency agency = importer.getAgencyById().getValue(route.agencyId());
+
+                final VehicleJourney vehicleJourney = VehicleJourney.of().recordedAtTime(now).line(line).delay(0L)
+                        .bearing(0d).vehicleLocation(Location.of().longitude(0d).latitude(0d))
+                        .vehicleJourneyName(trip.tripId()).operatorRef(agency.agencyId())
+                        .directionName(trip.tripHeadSign()).publishedLineName(route.routeLongName())
+                        .routeRef(trip.tripId()).vehicleModes(route.routeType().ordinal())
+                        .journeyPatternName(trip.tripId()).journeyPatternRef(trip.tripId())
+                        .datedVehicleJourneyRef(trip.tripId()).directionRef(trip.directionId().name()).monitored(true);
+
+                return createCall(session, trip, vehicleJourney).collect().asList().map(list -> vehicleJourney);
+            });
+        };
+
+        return Multi.createFrom().iterable(trips).filter(this::filterByCalendar).onItem()
+                .transformToUniAndConcatenate(create);
+    }
+
+    private Uni<Void> fillVehicleJourney(SessionFactory factory) {
+        Function<Route, Uni<?>> save = (route) -> {
+            final Monitor monitor = MonitorFactory.start("vehicule-journey");
+
+            Uni<Void> result = factory.withTransaction((session, transaction) -> {
+                return Uni.createFrom().item(route).onItem().transformToMulti(t -> createVehicleJourney(session, route))
+                        .call(session::persist).collect().asList().chain(t -> Uni.createFrom().voidItem());
+            });
+            return measure(result, monitor);
+        };
+
+        Iterable<Route> routes = importer.getRouteById();
+        return Multi.createFrom().iterable(routes)
+//                .select().first(10)
+                .call(save)
+                .collect().asList().chain(t -> Uni.createFrom().voidItem());
+    }
+
+    private Uni<Void> denormalize(SessionFactory factory) {
+
+        Uni<Void> action1 = factory.withTransaction((session, transaction) -> {
+            CriteriaBuilder builder = factory.getCriteriaBuilder();
+            CriteriaQuery<StopPoint> query = builder.createQuery(StopPoint.class);
+            Root<StopPoint> root = query.from(StopPoint.class);
+
+            CriteriaQuery<StopPoint> criteria = query.select(root);
+            Multi<StopPoint> stopPoints = session.createQuery(criteria).getResults();
+            return stopPoints.invoke(stopPoint -> stopPoint.lineRefs().addAll(lineRefs.get(stopPoint.stopPointRef())))
+                    .collect().asList().chain(t -> Uni.createFrom().voidItem());
+        });
+
+        Uni<Void> action2 = factory.withTransaction((session, transaction) -> {
+            CriteriaBuilder builder = factory.getCriteriaBuilder();
+            CriteriaQuery<Line> query = builder.createQuery(Line.class);
+            Root<Line> root = query.from(Line.class);
+            root.fetch(Line_.destinations, JoinType.LEFT);
+
+            CriteriaQuery<Line> criteria = query.select(root).distinct(true);
+            Multi<Line> lines = session.createQuery(criteria).getResults();
+            return lines.invoke(line -> {
+                Collection<Destination> list = destinations.get(line.lineRef());
+                list.forEach(line::addDestination);
+            }).collect().asList().chain(t -> Uni.createFrom().voidItem());
+        });
+
+        return measure(action1, MonitorFactory.start("annotated_stoppoint"))
+                .chain(t -> measure(action2, MonitorFactory.start("annotated_line")));
+    }
+
+    private <T> Uni<T> measure(Uni<T> input, Monitor monitor) {
+        return input.onSubscribe().invoke(monitor::start)
+                .onTermination().invoke(() -> log.info(Color.YELLOW + monitor.stop() + Color.NORMAL));
+    }
+
+    private boolean filterByCalendar(Trip trip) {
+        boolean result = false;
+
+        Calendar calendar = importer.getCalendarByService().getValue(trip.serviceId());
+        CalendarDate calendarDate = importer.getCalendarDateByService().getValue(trip.serviceId());
+
+        if (calendar != null) {
+
+            LocalDate now = LocalDate.now();
+            DayOfWeek day = now.getDayOfWeek();
+
+            // LocalDate startDate = calendar.getStartDate().toLocalDate();
+            // startDate = startDate.withYear(now.getYear());
+            // LocalDate endDate = calendar.getEndDate().toLocalDate();
+            // endDate = endDate.withYear(now.getYear());
+
+            // if ((now.compareTo(startDate) >= 0) && (now.compareTo(endDate) <=
+            // 0)) {
+            switch (day) {
+                case MONDAY:
+                    result = calendar.monday();
+                    break;
+                case TUESDAY:
+                    result = calendar.tuesday();
+                    break;
+                case WEDNESDAY:
+                    result = calendar.wednesday();
+                    break;
+                case THURSDAY:
+                    result = calendar.thursday();
+                    break;
+                case FRIDAY:
+                    result = calendar.friday();
+                    break;
+                case SATURDAY:
+                    result = calendar.saturday();
+                    break;
+                case SUNDAY:
+                    result = calendar.sunday();
+                    break;
+                default:
+                    break;
+            }
+
+            // }
+            /*
+             * if (calendarDate != null) { LocalDate exceptionDate = calendarDate.getDate().toLocalDate();
+             * exceptionDate.withYear(now.getYear()); if (now.compareTo(exceptionDate) == 0) { switch
+             * (calendarDate.getExceptionType()) { case Added: result = true; break; case Removed: result = false;
+             * break; default: break; } } }
+             */
+        }
+
+        return result;
+    }
+
+    private void extractArchive(Path path) throws IOException {
+        Monitor monitor = MonitorFactory.start();
+
+        Path currentRelativePath = Paths.get("");
+        String s = currentRelativePath.toAbsolutePath().toString();
+        System.out.println("Current relative path is: " + s);
+
+        String temp = System.getProperty("java.io.tmpdir");
+        Files.createDirectories(path);
+        Path data = Paths.get(ARCHIVE);
+        InputStream in = new BufferedInputStream(Files.newInputStream(data));
+
+        File file = Paths.get(temp, OUTPUT_DIR, ARCHIVE).toFile();
+        OutputStream out = new BufferedOutputStream(new FileOutputStream(file));
+        IOUtils.copy(in, out);
+        out.close();
+        in.close();
+        log.info(Color.YELLOW + "[DSU] copy file : " + file + " " + Color.NORMAL);
+
+        ZipUtils.unzipArchive(file, path.toFile());
+        log.info(Color.YELLOW + "[DSU] extract archive : " + path + " " + monitor.stop() + Color.NORMAL);
+    }
+
+}

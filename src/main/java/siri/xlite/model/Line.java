@@ -34,7 +34,7 @@ public class Line extends siri.xlite.model.SiriEntity {
     @Column(name = "monitored")
     private Boolean monitored;
 
-    // @Setter(value = AccessLevel.PRIVATE)
+    //     @Setter(value = AccessLevel.PRIVATE)
     @OneToMany(mappedBy = "line", cascade = CascadeType.ALL, orphanRemoval = true)
     @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
     private Set<Destination> destinations = new LinkedHashSet<>();
