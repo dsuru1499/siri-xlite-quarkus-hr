@@ -1,18 +1,24 @@
 # server configuration
 quarkus:
 
+  http:
+    ssl:
+      certificate:
+        key-store-file: siri-xlite.jks
+        key-store-password: siri-xlite
+    http2: true
+
   datasource:
     db-kind: postgresql
     username: siri-xlite
     password: siri-xlite
-#    jdbc:
-#      url: jdbc:postgresql://postgres/siri-xlite
+    #    jdbc:
+    #      url: jdbc:postgresql://postgres/siri-xlite
     reactive:
       url: vertx-reactive:postgresql://postgres/siri-xlite
 
   hibernate-orm:
     second-level-caching-enabled: false
-    statement-batch-size: 1000
     database:
       generation: create
     log:
@@ -27,7 +33,6 @@ quarkus:
 
 # application configuration
 siri-xlite:
-  port: 8443
   lines-discovery:
     max-age: 30
     s-maxage: 3600

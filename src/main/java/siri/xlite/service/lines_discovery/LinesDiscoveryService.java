@@ -6,7 +6,10 @@ import io.quarkus.vertx.web.Route;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.impl.Http2ServerRequestImpl;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.impl.RoutingContextImpl;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.reactive.mutiny.Mutiny.SessionFactory;
@@ -42,12 +45,10 @@ public class LinesDiscoveryService extends SiriService implements LinesDiscovery
     @Route(path = APPLICATION + SEP + LINES_DISCOVERY,
             methods = HttpMethod.GET)
     public void handle(RoutingContext context) {
-
         try {
             final Monitor monitor = MonitorFactory.start(LINES_DISCOVERY);
             final LinesDiscoverySubscriber subscriber = new LinesDiscoverySubscriber();
             // log(context.request());
-
             configure(subscriber, context)
                     .onItem().transformToMulti(t -> stream(t, context))
                     .onCompletion().call(() -> onComplete(subscriber, context))

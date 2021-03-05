@@ -77,16 +77,15 @@ StopMonitoring, EstimatedTimetable (voir ci-dessous)
 Version Quarkus / GraalVM / Hibernate reactive / PostgreQGL du serveur siri-xlite
 
 ### Build
-    mkdir -p /tmp/siri
-    chmod -R a+w /tmp/siri
-    ./mvnw clean package -Dquarkus.package.type=legacy-jar
+    mkdir -p /tmp/siri && chmod a+w /tmp/siri
+    ./mvnw clean package 
     docker-compose -f src/main/docker/docker-compose.yml build 
     docker-compose -f src/main/docker/docker-compose.yml up
 
 ### Problèmes:
 
 #### Quarkus:
-    - support HTTP/2 non fonctionnel avec quarkus-reactive-route
+    - support HTTP/2 non fonctionnel (IllegalStateException: Request has already been read)
 
 #### Hibernate reactive
     - version beta 
