@@ -42,7 +42,7 @@ public class EstimatedVehiculeJourneyService extends SiriService implements Esti
     EtagsRepository cache;
 
     @Route(path = APPLICATION + SEP + ESTIMATED_VEHICLE_JOURNEY + SEP + COLON + DATED_VEHICLE_JOURNEY_REF,
-            methods = HttpMethod.GET, type = Route.HandlerType.BLOCKING)
+            methods = HttpMethod.GET)
     public void handle(RoutingContext context) {
         try {
             Monitor monitor = MonitorFactory.start(ESTIMATED_VEHICLE_JOURNEY);

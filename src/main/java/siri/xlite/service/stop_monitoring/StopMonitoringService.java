@@ -47,7 +47,7 @@ public class StopMonitoringService extends SiriService implements StopMonitoring
     EtagsRepository cache;
 
     @Route(path = APPLICATION + SEP + STOP_MONITORING + SEP + COLON + MONITORING_REF,
-            methods = HttpMethod.GET, type = Route.HandlerType.BLOCKING)
+            methods = HttpMethod.GET)
     public void handle(final RoutingContext context) {
         try {
             Monitor monitor = MonitorFactory.start(STOP_MONITORING);

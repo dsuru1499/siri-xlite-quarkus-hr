@@ -40,9 +40,9 @@ public class StopPointsDiscoveryService extends SiriService implements StopPoint
     EtagsRepository cache;
 
     @Route(path = APPLICATION + SEP + STOPPOINTS_DISCOVERY + SEP + COLON + X_TILE + SEP + COLON + Y_TILE,
-            methods = HttpMethod.GET, type = Route.HandlerType.BLOCKING)
+            methods = HttpMethod.GET)
     @Route(path = APPLICATION + SEP + STOPPOINTS_DISCOVERY,
-            methods = HttpMethod.GET, type = Route.HandlerType.BLOCKING)
+            methods = HttpMethod.GET)
     public void handle(RoutingContext context) {
         try {
             Monitor monitor = MonitorFactory.start(STOPPOINTS_DISCOVERY);

@@ -40,7 +40,7 @@ public class LinesDiscoveryService extends SiriService implements LinesDiscovery
     EtagsRepository cache;
 
     @Route(path = APPLICATION + SEP + LINES_DISCOVERY,
-            methods = HttpMethod.GET, type = Route.HandlerType.BLOCKING)
+            methods = HttpMethod.GET)
     public void handle(RoutingContext context) {
 
         try {

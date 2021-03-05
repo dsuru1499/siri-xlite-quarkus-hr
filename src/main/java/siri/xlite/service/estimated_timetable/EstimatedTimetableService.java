@@ -41,7 +41,7 @@ public class EstimatedTimetableService extends SiriService implements EstimatedT
     EtagsRepository cache;
 
     @Route(path = APPLICATION + SEP + ESTIMATED_TIMETABLE + SEP + COLON + LINE_REF,
-            methods = HttpMethod.GET, type = Route.HandlerType.BLOCKING)
+            methods = HttpMethod.GET)
     public void handle(final RoutingContext context) {
         try {
             Monitor monitor = MonitorFactory.start(ESTIMATED_TIMETABLE);

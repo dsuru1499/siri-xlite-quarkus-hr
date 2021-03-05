@@ -1,5 +1,3 @@
-
-
 # server configuration
 quarkus:
 
@@ -16,7 +14,7 @@ quarkus:
     second-level-caching-enabled: false
     statement-batch-size: 1000
     database:
-      generation: none
+      generation: create
     log:
       sql: true
 

@@ -23,7 +23,7 @@ public class StopPointInSequenceGroupMarshaller implements Marshaller<Call> {
         // visitNumber :ushort;
 
         // set order
-        writeField(writer, ORDER, source.index());
+        writeField(writer, ORDER, source.order());
 
         // set stopPointName
         writeField(writer, STOP_POINT_NAME, source.stopPoint().stopName());
