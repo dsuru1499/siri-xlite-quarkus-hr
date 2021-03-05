@@ -102,7 +102,7 @@ Version Quarkus / GraalVM / Hibernate reactive / PostgreQGL du serveur siri-xlit
 
 ### Client    
 
-    https://localhost/siri-xlite-cli/index.html
+    http://localhost/siri-xlite-cli/index.html
 
 ![](./images/cli.png)
 
