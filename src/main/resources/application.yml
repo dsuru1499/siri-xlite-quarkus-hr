@@ -6,7 +6,7 @@ quarkus:
       certificate:
         key-store-file: siri-xlite.jks
         key-store-password: siri-xlite
-    http2: true
+    http2: false
 
   datasource:
     db-kind: postgresql
