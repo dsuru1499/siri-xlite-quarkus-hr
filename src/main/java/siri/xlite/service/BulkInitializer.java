@@ -13,7 +13,6 @@ import io.smallrye.mutiny.subscription.UniEmitter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
-import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.time.DateUtils;
 import org.hibernate.reactive.mutiny.Mutiny;
@@ -25,7 +24,9 @@ import uk.org.siri.siri.CallStatusEnumeration;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-import java.io.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -91,28 +92,6 @@ public class BulkInitializer {
         log.info(Color.YELLOW + "[DSU] model initialized : " + monitor.stop() + Color.NORMAL);
     }
 
-
-    private boolean checkArchive() throws IOException {
-        String temp = System.getProperty("java.io.tmpdir");
-        Path path = Paths.get(temp, OUTPUT_DIR);
-        if (Files.notExists(path)) {
-            extractArchive(path);
-            return true;
-        } else {
-            Path version = Paths.get(temp, OUTPUT_DIR, VERSION);
-            if (Files.exists(version)) {
-                BasicFileAttributes attributes = Files.readAttributes(version, BasicFileAttributes.class);
-                FileTime creation = attributes.creationTime();
-                if (!DateUtils.isSameDay(new Date(), new Date(creation.toMillis()))) {
-                    Files.delete(version);
-                    return true;
-                }
-            } else {
-                return true;
-            }
-        }
-        return false;
-    }
 
     private Uni<Void> truncate(Mutiny.Session session, String name) {
         String sql = String.format(TRUNCATE, name);
@@ -407,21 +386,30 @@ public class BulkInitializer {
 
     private void extractArchive(Path path) throws IOException {
         Monitor monitor = MonitorFactory.start();
-
-        String temp = System.getProperty("java.io.tmpdir");
-        Files.createDirectories(path);
-        Path data = Paths.get(".", ARCHIVE);
-        InputStream in = new BufferedInputStream(Files.newInputStream(data));
-
-        File file = Paths.get(temp, OUTPUT_DIR, ARCHIVE).toFile();
-        OutputStream out = new BufferedOutputStream(new FileOutputStream(file));
-        IOUtils.copy(in, out);
-        out.close();
-        in.close();
-        log.info(Color.YELLOW + "[DSU] copy file : " + file + " " + Color.NORMAL);
-
+        if (Files.notExists(path)) {
+            Files.createDirectories(path);
+        }
+        File file = Paths.get(".", ARCHIVE).toFile();
         ZipUtils.unzipArchive(file, path.toFile());
         log.info(Color.YELLOW + "[DSU] extract archive : " + path + " " + monitor.stop() + Color.NORMAL);
+    }
+
+    private boolean checkArchive() throws IOException {
+        String temp = System.getProperty("java.io.tmpdir");
+        Path path = Paths.get(temp, OUTPUT_DIR);
+        Path version = path.resolve(VERSION);
+        if (Files.notExists(version)) {
+            extractArchive(path);
+            return true;
+        } else {
+            BasicFileAttributes attributes = Files.readAttributes(version, BasicFileAttributes.class);
+            FileTime creation = attributes.creationTime();
+            if (!DateUtils.isSameDay(new Date(), new Date(creation.toMillis()))) {
+                Files.delete(version);
+                return true;
+            }
+        }
+        return false;
     }
 
     private Uni<Void> updateSequence(Mutiny.Session session, String table) {

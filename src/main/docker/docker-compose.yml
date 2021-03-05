@@ -9,6 +9,8 @@ services:
       - POSTGRES_USER=siri-xlite
       - POSTGRES_PASSWORD=siri-xlite
       - POSTGRES_DB=siri-xlite
+    volumes:
+      - /tmp/siri:/tmp/siri:z
 
   siri-xlite:
     build:
@@ -18,6 +20,8 @@ services:
       - "postgres"
     ports:
       - "8080:8080"
+    volumes:
+      - /tmp/siri:/tmp/siri:z
 
   nuster:
     build:

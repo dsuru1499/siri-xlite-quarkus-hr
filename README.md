@@ -77,11 +77,10 @@ StopMonitoring, EstimatedTimetable (voir ci-dessous)
 Version Quarkus / GraalVM / Hibernate reactive / PostgreQGL du serveur siri-xlite
 
 ### Build
-    ./mvnw compile quarkus:dev
-
-    TODO
+    mkdir -p /tmp/siri
+    chmod a+w /tmp/siri
     ./mvnw clean package -Dquarkus.package.type=legacy-jar
-    docker-compose -f src/main/docker/docker-compose.ymlbuild 
+    docker-compose -f src/main/docker/docker-compose.yml build 
     docker-compose -f src/main/docker/docker-compose.yml up
 
 ### Problèmes:
