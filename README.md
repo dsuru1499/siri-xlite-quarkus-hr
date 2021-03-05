@@ -78,7 +78,7 @@ Version Quarkus / GraalVM / Hibernate reactive / PostgreQGL du serveur siri-xlit
 
 ### Build
     mkdir -p /tmp/siri
-    chmod a+w /tmp/siri
+    chmod -R a+w /tmp/siri
     ./mvnw clean package -Dquarkus.package.type=legacy-jar
     docker-compose -f src/main/docker/docker-compose.yml build 
     docker-compose -f src/main/docker/docker-compose.yml up

@@ -10,7 +10,7 @@ services:
       - POSTGRES_PASSWORD=siri-xlite
       - POSTGRES_DB=siri-xlite
     volumes:
-      - /tmp/siri:/tmp/siri:z
+       - /tmp/siri:/tmp/siri:z
 
   siri-xlite:
     build:
@@ -32,3 +32,4 @@ services:
     ports:
       - "80:80"
       - "443:443"
+

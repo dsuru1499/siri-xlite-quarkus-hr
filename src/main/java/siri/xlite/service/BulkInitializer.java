@@ -50,11 +50,12 @@ public class BulkInitializer {
     public static final String DESTINATION_REF = "destinationRef";
     public static final String PLACE_NAME = "placeName";
     private static final String ARCHIVE = "data.zip";
-    private static final String OUTPUT_DIR = "siri";
+    private static final String DATA_DIR = "siri";
     private static final String UPDATE_SEQUENCE = "SELECT setval('%1$s_seq', max(id)) FROM %1$s;";
+    public static final String CSV = ".csv";
     private final MultiValuedMap<String, String> lineRefs = new HashSetValuedHashMap<>();
     private final MultiValuedMap<String, Map<String, String>> destinations = new HashSetValuedHashMap<>();
-    public static final String VERSION = "version";
+    public static final String VERSION_FILE = "version";
 
     @Inject
     Mutiny.SessionFactory factory;
@@ -72,7 +73,7 @@ public class BulkInitializer {
 
     public void initialize() throws IOException {
         String temp = System.getProperty("java.io.tmpdir");
-        Path path = Paths.get(temp, OUTPUT_DIR);
+        Path path = Paths.get(temp, DATA_DIR);
         Monitor monitor = MonitorFactory.start();
         log.info(Color.YELLOW + "[DSU] initialize model (~ 3mn)" + Color.NORMAL);
 
@@ -85,7 +86,7 @@ public class BulkInitializer {
                     .chain(this::copy)
                     .await().indefinitely();
             importer.dispose();
-            Path version = Paths.get(temp, OUTPUT_DIR, VERSION);
+            Path version = Paths.get(temp, DATA_DIR, VERSION_FILE);
             File file = FileUtils.getFile(version.toString());
             FileUtils.touch(file);
         }
@@ -396,8 +397,8 @@ public class BulkInitializer {
 
     private boolean checkArchive() throws IOException {
         String temp = System.getProperty("java.io.tmpdir");
-        Path path = Paths.get(temp, OUTPUT_DIR);
-        Path version = path.resolve(VERSION);
+        Path path = Paths.get(temp, DATA_DIR);
+        Path version = path.resolve(VERSION_FILE);
         if (Files.notExists(version)) {
             extractArchive(path);
             return true;
@@ -429,7 +430,7 @@ public class BulkInitializer {
     }
 
     private Path path(String tableName) {
-        return Path.of(System.getProperty("java.io.tmpdir"), OUTPUT_DIR, tableName + ".csv");
+        return Path.of(System.getProperty("java.io.tmpdir"), DATA_DIR, tableName + CSV);
     }
 
     private <T> Uni<T> measure(Uni<T> input, Monitor monitor) {
