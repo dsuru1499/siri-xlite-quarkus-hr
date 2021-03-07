@@ -22,7 +22,6 @@ import siri.xlite.repositories.VehicleJourneyRepository;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.Comparator;
-import java.util.ResourceBundle;
 
 import static siri.xlite.service.stop_monitoring.StopMonitoringParameters.MONITORING_REF;
 
@@ -31,8 +30,6 @@ import static siri.xlite.service.stop_monitoring.StopMonitoringParameters.MONITO
 @NoArgsConstructor
 @ApplicationScoped
 public class StopMonitoringService extends SiriService implements StopMonitoring {
-    private static final ResourceBundle messages = ResourceBundle
-            .getBundle(Messages.class.getPackageName() + ".Messages");
 
     @Inject
     protected SessionFactory factory;
@@ -55,7 +52,7 @@ public class StopMonitoringService extends SiriService implements StopMonitoring
             final StopMonitoringSubscriber subscriber = new StopMonitoringSubscriber();
             configure(subscriber, context)
                     .onItem().transformToMulti(t -> stream(t, context))
-                    .call(() -> onComplete(subscriber, context))
+                    .onCompletion().call(() -> onComplete(subscriber, context))
                     .onTermination().invoke(() -> log.info(Color.YELLOW + monitor.stop() + Color.NORMAL)).subscribe(subscriber);
         } catch (Exception e) {
             log.error(e.getMessage(), e);

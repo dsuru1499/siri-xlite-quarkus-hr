@@ -52,12 +52,12 @@ public class DateTimeUtils {
     }
 
     public static String toRFC1123(Date date) {
-        ZonedDateTime time = ZonedDateTime.ofInstant(date.toInstant(), ZoneId.of("GMT"));
-        return DateTimeFormatter.RFC_1123_DATE_TIME.format(time);
+        ZonedDateTime dateTime = ZonedDateTime.ofInstant(date.toInstant(), ZoneId.of("GMT"));
+        return DateTimeFormatter.RFC_1123_DATE_TIME.format(dateTime);
     }
 
     public static Date fromRFC1123(String text) {
-        LocalDateTime dateTime = LocalDateTime.parse(text, DateTimeFormatter.RFC_1123_DATE_TIME);
-        return Date.from(dateTime.atZone(ZoneId.of("GMT")).toInstant());
+        ZonedDateTime dateTime = ZonedDateTime.parse(text, DateTimeFormatter.RFC_1123_DATE_TIME);
+        return Date.from(dateTime.toInstant());
     }
 }

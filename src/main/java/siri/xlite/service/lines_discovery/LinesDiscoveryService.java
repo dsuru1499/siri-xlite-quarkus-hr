@@ -6,10 +6,7 @@ import io.quarkus.vertx.web.Route;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.impl.Http2ServerRequestImpl;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.impl.RoutingContextImpl;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.reactive.mutiny.Mutiny.SessionFactory;
@@ -22,16 +19,12 @@ import siri.xlite.repositories.LineRepository;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.Date;
-import java.util.Locale;
-import java.util.ResourceBundle;
 
 @SuppressWarnings("unused")
 @Slf4j
 @NoArgsConstructor
 @ApplicationScoped
 public class LinesDiscoveryService extends SiriService implements LinesDiscovery {
-    private static final ResourceBundle messages = ResourceBundle
-            .getBundle(Messages.class.getPackageName() + ".Messages");
 
     @Inject
     SessionFactory factory;
@@ -53,7 +46,8 @@ public class LinesDiscoveryService extends SiriService implements LinesDiscovery
             configure(subscriber, context)
                     .onItem().transformToMulti(t -> stream(t, context))
                     .onCompletion().call(() -> onComplete(subscriber, context))
-                    .onTermination().invoke(() -> log.info(Color.YELLOW + monitor.stop() + Color.NORMAL)).subscribe(subscriber);
+                    .onTermination().invoke(() -> log.info(Color.YELLOW + monitor.stop() + Color.NORMAL))
+                    .subscribe(subscriber);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }

@@ -12,7 +12,6 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.converters.MultiConverter;
 import io.smallrye.mutiny.converters.multi.FromObservable;
 import lombok.extern.slf4j.Slf4j;
-import siri.xlite.common.Messages;
 import siri.xlite.model.Location_;
 import siri.xlite.model.StopPoint;
 import siri.xlite.model.StopPoint_;
@@ -22,7 +21,6 @@ import javax.persistence.MappedSuperclass;
 import javax.persistence.NamedNativeQueries;
 import javax.persistence.NamedNativeQuery;
 import javax.persistence.criteria.*;
-import java.util.ResourceBundle;
 
 import static siri.xlite.common.Messages.LOAD_FROM_BACKEND;
 import static siri.xlite.common.OSMUtils.*;
@@ -49,9 +47,6 @@ import static siri.xlite.common.OSMUtils.*;
 @ApplicationScoped
 public class StopPointRepository extends ReactiveRepository<StopPoint, String> {
 
-    private static final ResourceBundle messages = ResourceBundle
-            .getBundle(Messages.class.getPackageName() + ".Messages");
-
     private static RTree<String, Point> rtree;
 
     protected StopPointRepository() {
@@ -59,7 +54,7 @@ public class StopPointRepository extends ReactiveRepository<StopPoint, String> {
     }
 
     public Multi<StopPoint> find() {
-        log.info(messages.getString(LOAD_FROM_BACKEND), "/siri-xlite/stoppoints-discovery");
+        log.info(messages.getString(LOAD_FROM_BACKEND), type);
 
         CriteriaBuilder builder = factory.getCriteriaBuilder();
         CriteriaQuery<StopPoint> query = builder.createQuery(type);
@@ -85,6 +80,8 @@ public class StopPointRepository extends ReactiveRepository<StopPoint, String> {
 
     @SuppressWarnings("unused")
     public Multi<StopPoint> findByLocation(double[][] polygon) {
+        log.info(messages.getString(LOAD_FROM_BACKEND), type);
+
         CriteriaBuilder builder = factory.getCriteriaBuilder();
         CriteriaQuery<StopPoint> query = builder.createQuery(type);
         Root<StopPoint> root = query.from(type);
@@ -100,6 +97,7 @@ public class StopPointRepository extends ReactiveRepository<StopPoint, String> {
     }
 
     public Multi<StopPoint> findByMonitoringRef(String monitoringRef) {
+        log.info(messages.getString(LOAD_FROM_BACKEND), type);
         return session.createNamedQuery("StopPoint_findByMonitoringRef", StopPoint.class)
                 .setParameter("id", monitoringRef)
                 .getResults();

@@ -5,7 +5,6 @@ import io.smallrye.mutiny.Uni;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.annotations.NamedNativeQueries;
 import org.hibernate.annotations.NamedNativeQuery;
-import org.hibernate.reactive.mutiny.Mutiny.Session;
 import siri.xlite.model.*;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -13,6 +12,8 @@ import javax.persistence.MappedSuperclass;
 import javax.persistence.criteria.*;
 import java.sql.Time;
 import java.util.List;
+
+import static siri.xlite.common.Messages.LOAD_FROM_BACKEND;
 
 @MappedSuperclass
 @NamedNativeQueries({
@@ -48,7 +49,9 @@ public class VehicleJourneyRepository extends ReactiveRepository<VehicleJourney,
         super(VehicleJourney.class, String.class);
     }
 
-    public Uni<VehicleJourney> find( String id) {
+    public Uni<VehicleJourney> find(String id) {
+        log.info(messages.getString(LOAD_FROM_BACKEND), type);
+
         CriteriaBuilder builder = factory.getCriteriaBuilder();
         CriteriaQuery<VehicleJourney> query = builder.createQuery(type);
 
@@ -68,7 +71,9 @@ public class VehicleJourneyRepository extends ReactiveRepository<VehicleJourney,
 
     }
 
-    public Multi<VehicleJourney> findByLineRef( String lineRef) {
+    public Multi<VehicleJourney> findByLineRef(String lineRef) {
+        log.info(messages.getString(LOAD_FROM_BACKEND), type);
+
         CriteriaBuilder builder = factory.getCriteriaBuilder();
         CriteriaQuery<VehicleJourney> query = builder.createQuery(type);
 
@@ -89,7 +94,9 @@ public class VehicleJourneyRepository extends ReactiveRepository<VehicleJourney,
     }
 
 
-    public Multi<VehicleJourney> findByStopPointRefs( List<String> stopPointRefs) {
+    public Multi<VehicleJourney> findByStopPointRefs(List<String> stopPointRefs) {
+        log.info(messages.getString(LOAD_FROM_BACKEND), type);
+
         CriteriaBuilder builder = factory.getCriteriaBuilder();
         CriteriaQuery<VehicleJourney> query = builder.createQuery(type);
 
@@ -111,8 +118,10 @@ public class VehicleJourneyRepository extends ReactiveRepository<VehicleJourney,
     }
 
     @SuppressWarnings("unused")
-    public Multi<VehicleJourney> findByMonitoringRef( String monitoringRef) {
-        return  session.createNamedQuery("VehicleJourney_findByMonitoringRef", VehicleJourney.class)
+    public Multi<VehicleJourney> findByMonitoringRef(String monitoringRef) {
+        log.info(messages.getString(LOAD_FROM_BACKEND), type);
+
+        return session.createNamedQuery("VehicleJourney_findByMonitoringRef", VehicleJourney.class)
                 .setParameter("id", monitoringRef)
                 .getResults();
     }

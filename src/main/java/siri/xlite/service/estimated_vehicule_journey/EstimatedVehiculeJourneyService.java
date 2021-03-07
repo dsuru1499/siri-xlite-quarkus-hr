@@ -3,6 +3,7 @@ package siri.xlite.service.estimated_vehicule_journey;
 import com.jamonapi.Monitor;
 import com.jamonapi.MonitorFactory;
 import io.quarkus.vertx.web.Route;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -18,9 +19,7 @@ import siri.xlite.repositories.VehicleJourneyRepository;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.Date;
-import java.util.ResourceBundle;
 
-import static siri.xlite.common.Messages.LOAD_FROM_BACKEND;
 import static siri.xlite.service.estimated_vehicule_journey.EstimatedVehiculeJourneyParameters.DATED_VEHICLE_JOURNEY_REF;
 
 @SuppressWarnings("unused")
@@ -28,8 +27,6 @@ import static siri.xlite.service.estimated_vehicule_journey.EstimatedVehiculeJou
 @NoArgsConstructor
 @ApplicationScoped
 public class EstimatedVehiculeJourneyService extends SiriService implements EstimatedVehiculeJourney {
-    private static final ResourceBundle messages = ResourceBundle
-            .getBundle(Messages.class.getPackageName() + ".Messages");
 
     @Inject
     protected SessionFactory factory;
@@ -46,14 +43,15 @@ public class EstimatedVehiculeJourneyService extends SiriService implements Esti
     public void handle(RoutingContext context) {
         try {
             Monitor monitor = MonitorFactory.start(ESTIMATED_VEHICLE_JOURNEY);
-            // log(context.request());
+//            log(context.request());
 
             final EstimatedVehiculeJourneySubscriber subscriber = new EstimatedVehiculeJourneySubscriber();
-            Uni<VehicleJourney> result = configure(subscriber, context)
+            configure(subscriber, context)
                     .chain(t -> stream(t, context))
-                    .invoke(() -> onComplete(subscriber, context))
-                    .onTermination().invoke(() -> log.info(Color.YELLOW + monitor.stop() + Color.NORMAL));
-            result.subscribe().withSubscriber(new SubscriberWrapper<>(subscriber));
+                    .onItem().transformToMulti(t -> Multi.createFrom().items(t))
+                    .onCompletion().call(() -> onComplete(subscriber, context))
+                    .onTermination().invoke(() -> log.info(Color.YELLOW + monitor.stop() + Color.NORMAL))
+                    .subscribe(subscriber);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
@@ -76,7 +74,6 @@ public class EstimatedVehiculeJourneyService extends SiriService implements Esti
         Date lastModified = CacheControl.getLastModified(context);
         String uri = context.request().uri();
         cache.validate(uri, lastModified);
-        log.info(messages.getString(LOAD_FROM_BACKEND), uri);
         return repository.find(parameters.getDatedVehicleJourneyRef());
     }
 

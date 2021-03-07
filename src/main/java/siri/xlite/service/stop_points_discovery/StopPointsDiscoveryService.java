@@ -19,15 +19,12 @@ import siri.xlite.repositories.StopPointRepository;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.Date;
-import java.util.ResourceBundle;
 
 @SuppressWarnings("unused")
 @Slf4j
 @NoArgsConstructor
 @ApplicationScoped
 public class StopPointsDiscoveryService extends SiriService implements StopPointsDiscovery {
-    private static final ResourceBundle messages = ResourceBundle
-            .getBundle(Messages.class.getPackageName() + ".Messages");
 
     @Inject
     SessionFactory factory;
@@ -49,8 +46,8 @@ public class StopPointsDiscoveryService extends SiriService implements StopPoint
             // log(context.request());
 
             final StopPointsDiscoverySubscriber subscriber = new StopPointsDiscoverySubscriber();
-            configure(subscriber, context).onItem().transformToMulti(t -> stream(t, context)).onCompletion()
-                    .call(() -> onComplete(subscriber, context))
+            configure(subscriber, context).onItem().transformToMulti(t -> stream(t, context))
+                    .onCompletion().call(() -> onComplete(subscriber, context))
                     .onTermination().invoke(() -> log.info(Color.YELLOW + monitor.stop() + Color.NORMAL)).subscribe(subscriber);
         } catch (Exception e) {
             log.error(e.getMessage(), e);

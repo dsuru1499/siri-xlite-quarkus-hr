@@ -16,7 +16,6 @@ import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import java.nio.charset.Charset;
 import java.util.Locale;
-import java.util.TimeZone;
 
 import static siri.xlite.common.SiriService.APPLICATION;
 

@@ -2,7 +2,6 @@ package siri.xlite.repositories;
 
 import io.smallrye.mutiny.Multi;
 import lombok.extern.slf4j.Slf4j;
-import siri.xlite.common.Messages;
 import siri.xlite.model.Line;
 import siri.xlite.model.Line_;
 
@@ -11,7 +10,6 @@ import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.JoinType;
 import javax.persistence.criteria.Root;
-import java.util.ResourceBundle;
 
 import static siri.xlite.common.Messages.LOAD_FROM_BACKEND;
 
@@ -19,15 +17,12 @@ import static siri.xlite.common.Messages.LOAD_FROM_BACKEND;
 @ApplicationScoped
 public class LineRepository extends ReactiveRepository<Line, String> {
 
-    private static final ResourceBundle messages = ResourceBundle
-            .getBundle(Messages.class.getPackageName() + ".Messages");
-
     protected LineRepository() {
         super(Line.class, String.class);
     }
 
     public Multi<Line> find() {
-        log.info(messages.getString(LOAD_FROM_BACKEND), "/siri-xlite/lines-discovery");
+        log.info(messages.getString(LOAD_FROM_BACKEND), type);
 
         CriteriaBuilder builder = factory.getCriteriaBuilder();
         CriteriaQuery<Line> query = builder.createQuery(type);

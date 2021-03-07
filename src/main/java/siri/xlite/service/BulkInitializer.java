@@ -49,14 +49,13 @@ public class BulkInitializer {
     public static final String COPY = "COPY %1$s %2$s FROM '%3$s' WITH CSV";
     public static final String DESTINATION_REF = "destinationRef";
     public static final String PLACE_NAME = "placeName";
+    public static final String CSV = ".csv";
+    public static final String VERSION_FILE = "version";
     private static final String ARCHIVE = "data.zip";
     private static final String DATA_DIR = "siri";
     private static final String UPDATE_SEQUENCE = "SELECT setval('%1$s_seq', max(id)) FROM %1$s;";
-    public static final String CSV = ".csv";
     private final MultiValuedMap<String, String> lineRefs = new HashSetValuedHashMap<>();
     private final MultiValuedMap<String, Map<String, String>> destinations = new HashSetValuedHashMap<>();
-    public static final String VERSION_FILE = "version";
-
     @Inject
     Mutiny.SessionFactory factory;
 

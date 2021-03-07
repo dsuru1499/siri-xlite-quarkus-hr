@@ -45,7 +45,7 @@ public abstract class ItemSubscriber<T extends SiriEntity, P extends DefaultPara
     }
 
     public Date getLastModified() {
-        return siri.xlite.common.CacheControl.getLastModified(current);
+        return CacheControl.getLastModified(current);
     }
 
     protected abstract void writeItem(T t);

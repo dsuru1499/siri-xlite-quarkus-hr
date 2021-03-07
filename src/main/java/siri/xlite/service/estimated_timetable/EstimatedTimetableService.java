@@ -18,7 +18,6 @@ import siri.xlite.repositories.VehicleJourneyRepository;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import java.util.ResourceBundle;
 
 import static siri.xlite.service.estimated_timetable.EstimatedTimetableParameters.LINE_REF;
 
@@ -27,9 +26,6 @@ import static siri.xlite.service.estimated_timetable.EstimatedTimetableParameter
 @NoArgsConstructor
 @ApplicationScoped
 public class EstimatedTimetableService extends SiriService implements EstimatedTimetable {
-    private static final ResourceBundle messages = ResourceBundle
-            .getBundle(Messages.class.getPackageName() + ".Messages");
-
     @Inject
     protected SessionFactory factory;
 
@@ -50,7 +46,7 @@ public class EstimatedTimetableService extends SiriService implements EstimatedT
             final EstimatedTimetableSubscriber subscriber = new EstimatedTimetableSubscriber();
             Multi<VehicleJourney> result = configure(subscriber, context).onItem()
                     .transformToMulti(t -> stream(t, context))
-                    .call(() -> onComplete(subscriber, context))
+                    .onCompletion().call(() -> onComplete(subscriber, context))
                     .onTermination().invoke(() -> log.info(Color.YELLOW + monitor.stop() + Color.NORMAL));
             result.subscribe(subscriber);
         } catch (Exception e) {
