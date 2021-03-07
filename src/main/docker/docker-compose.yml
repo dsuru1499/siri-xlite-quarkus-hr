@@ -22,6 +22,7 @@ services:
       - "postgres"
     ports:
       - "8080:8080"
+      - "8443:8443"
     volumes:
       - /tmp/siri:/tmp/siri:z
 

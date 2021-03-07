@@ -51,6 +51,8 @@ COPY --chown=1001 target/quarkus-app/quarkus/ /deployments/quarkus/
 COPY data.zip /deployments/data.zip
 
 EXPOSE 8080
+EXPOSE 8443
+
 USER 1001
 
 ENTRYPOINT [ "/deployments/run-java.sh" ]
