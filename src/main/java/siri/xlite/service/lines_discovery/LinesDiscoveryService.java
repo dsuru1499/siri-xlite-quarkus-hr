@@ -22,6 +22,7 @@ import siri.xlite.repositories.LineRepository;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import java.util.Date;
+import java.util.Locale;
 import java.util.ResourceBundle;
 
 @SuppressWarnings("unused")

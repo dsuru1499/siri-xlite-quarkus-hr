@@ -1,7 +1,12 @@
 # server configuration
+"%dev":
+  quarkus:
+    http:
+      port: 8181
 quarkus:
 
   http:
+    cors: true
     ssl:
       certificate:
         key-store-file: siri-xlite.jks
@@ -18,8 +23,11 @@ quarkus:
       url: vertx-reactive:postgresql://postgres/siri-xlite
 
   hibernate-orm:
+    jdbc:
+      timezone: "Europe/Paris"
     second-level-caching-enabled: false
     database:
+      charset: UTF-8
       generation: create
     log:
       sql: true

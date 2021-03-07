@@ -14,6 +14,9 @@ import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
+import java.nio.charset.Charset;
+import java.util.Locale;
+import java.util.TimeZone;
 
 import static siri.xlite.common.SiriService.APPLICATION;
 
@@ -34,13 +37,15 @@ public class DefaultService {
     }
 
     void onStart(@Observes StartupEvent event) {
-        log.info(Color.GREEN + String.format("Application %s is starting ...", APPLICATION) + Color.NORMAL);
+        log.info(Color.GREEN + String.format("Application %s started", APPLICATION) + Color.NORMAL);
+        log.info(Color.GREEN + String.format("Locale %s, Charset %s, Timezone %s",
+                Locale.getDefault(), Charset.defaultCharset(), System.getProperty("user.timezone")) + Color.NORMAL);
         router.route().handler(FaviconHandler.create());
         router.route().handler(StaticHandler.create(PUBLIC));
     }
 
     void onStop(@Observes ShutdownEvent event) {
-        log.info(Color.GREEN + String.format("Application %s is stopping ...", APPLICATION) + Color.NORMAL);
+        log.info(Color.GREEN + String.format("Application %s stopped", APPLICATION) + Color.NORMAL);
     }
 
 }

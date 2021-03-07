@@ -30,8 +30,11 @@ import static siri.xlite.common.SiriService.APPLICATION;
 @Slf4j
 public abstract class SiriSubscriber<T extends SiriEntity, P extends siri.xlite.common.DefaultParameters> implements Subscriber<T> {
 
+    private static final String CONTENT_TYPE_VALUE = APPLICATION_JSON + "; charset=utf-8";
+
     @Inject
     protected P parameters;
+
     protected RoutingContext context;
     protected ByteArrayOutputStream out;
     protected JsonGenerator writer;
@@ -80,7 +83,7 @@ public abstract class SiriSubscriber<T extends SiriEntity, P extends siri.xlite.
         SiriExceptionMarshaller.getInstance().write(writer, e);
         writer.close();
         HttpServerResponse response = this.context.response()
-                .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+                .putHeader(HttpHeaders.CONTENT_TYPE, CONTENT_TYPE_VALUE)
                 .setStatusCode(HttpResponseStatus.BAD_REQUEST.code());
         // log(response);
         response.end(out.toString());
@@ -97,7 +100,7 @@ public abstract class SiriSubscriber<T extends SiriEntity, P extends siri.xlite.
     protected void writeNotModified() throws Exception {
         writer.close();
         HttpServerResponse response = this.context.response()
-                .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
+                .putHeader(HttpHeaders.CONTENT_TYPE, CONTENT_TYPE_VALUE)
                 .putHeader(HttpHeaders.CACHE_CONTROL,
                         Arrays.asList(siri.xlite.common.CacheControl.MUST_REVALIDATE, siri.xlite.common.CacheControl.PROXY_REVALIDATE,
                                 siri.xlite.common.CacheControl.S_MAX_AGE + parameters.getSMaxAge(),
@@ -110,8 +113,7 @@ public abstract class SiriSubscriber<T extends SiriEntity, P extends siri.xlite.
 
     protected void writeResponse(Date lastModified) {
         HttpServerResponse response = this.context.response()
-                .putHeader(HttpHeaders.CONTENT_TYPE, APPLICATION_JSON)
-//                .putHeader(HttpHeaders.CONTENT_LENGTH, "" + text.length())
+                .putHeader(HttpHeaders.CONTENT_TYPE, CONTENT_TYPE_VALUE)
                 .putHeader(HttpHeaders.CACHE_CONTROL,
                         Arrays.asList(siri.xlite.common.CacheControl.MUST_REVALIDATE, siri.xlite.common.CacheControl.PROXY_REVALIDATE,
                                 siri.xlite.common.CacheControl.S_MAX_AGE + parameters.getSMaxAge(),
