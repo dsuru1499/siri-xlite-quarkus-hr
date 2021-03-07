@@ -22,7 +22,7 @@ import java.util.Set;
 @Table(indexes = {@Index(name = "stoppoint_parent_idx", columnList = "parent"),
         @Index(name = "stoppoint_longitude_idx", columnList = "longitude"),
         @Index(name = "stoppoint_latitude_idx", columnList = "latitude")})
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "stoppoint")
+@Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE, region = "stoppoint")
 @Cacheable
 public class StopPoint extends SiriEntity {
 
@@ -64,7 +64,7 @@ public class StopPoint extends SiriEntity {
 
     @OneToMany(mappedBy = "stopPoint", cascade = CascadeType.ALL, orphanRemoval = true)
     @Setter(value = AccessLevel.PRIVATE)
-    private Set<siri.xlite.model.TargetedInterchange> targetedInterchanges = new LinkedHashSet<>();
+    private Set<TargetedInterchange> targetedInterchanges = new LinkedHashSet<>();
 
     public static StopPoint of() {
         return new StopPoint();
@@ -90,12 +90,12 @@ public class StopPoint extends SiriEntity {
         call.stopPoint(null);
     }
 
-    public void addTargetedInterchange(siri.xlite.model.TargetedInterchange targetedInterchange) {
+    public void addTargetedInterchange(TargetedInterchange targetedInterchange) {
         targetedInterchange.stopPoint(this);
         targetedInterchanges.add(targetedInterchange);
     }
 
-    public void removeTargetedInterchange(siri.xlite.model.TargetedInterchange targetedInterchange) {
+    public void removeTargetedInterchange(TargetedInterchange targetedInterchange) {
         targetedInterchanges.remove(targetedInterchange);
         targetedInterchange.stopPoint(null);
     }

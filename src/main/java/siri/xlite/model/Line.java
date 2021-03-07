@@ -19,7 +19,7 @@ import java.util.Set;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
-@Cache(usage = CacheConcurrencyStrategy.READ_WRITE, region = "line")
+@Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE, region = "line")
 @Cacheable
 public class Line extends siri.xlite.model.SiriEntity {
 
@@ -36,7 +36,7 @@ public class Line extends siri.xlite.model.SiriEntity {
 
     //     @Setter(value = AccessLevel.PRIVATE)
     @OneToMany(mappedBy = "line", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+    @Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE, region = "destinations")
     private Set<Destination> destinations = new LinkedHashSet<>();
 
     @Setter(value = AccessLevel.PRIVATE)
