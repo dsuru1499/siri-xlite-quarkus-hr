@@ -43,7 +43,6 @@ public class StopPointsDiscoveryService extends SiriService implements StopPoint
     public void handle(RoutingContext context) {
         try {
             Monitor monitor = MonitorFactory.start(STOPPOINTS_DISCOVERY);
-            // log(context.request());
 
             final StopPointsDiscoverySubscriber subscriber = new StopPointsDiscoverySubscriber();
             configure(subscriber, context).onItem().transformToMulti(t -> stream(t, context))

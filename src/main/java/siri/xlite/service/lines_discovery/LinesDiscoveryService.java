@@ -42,7 +42,6 @@ public class LinesDiscoveryService extends SiriService implements LinesDiscovery
         try {
             final Monitor monitor = MonitorFactory.start(LINES_DISCOVERY);
             final LinesDiscoverySubscriber subscriber = new LinesDiscoverySubscriber();
-            // log(context.request());
             configure(subscriber, context)
                     .onItem().transformToMulti(t -> stream(t, context))
                     .onCompletion().call(() -> onComplete(subscriber, context))

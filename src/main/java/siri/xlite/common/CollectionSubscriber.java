@@ -25,7 +25,7 @@ public abstract class CollectionSubscriber<T extends SiriEntity, P extends Defau
                 writeStartDocument(writer, parameters);
                 writer.writeStartArray();
             }
-            if (current == null || siri.xlite.common.CacheControl.COMPARATOR.compare(source, current) > 0) {
+            if (current == null || CacheControl.COMPARATOR.compare(source, current) > 0) {
                 this.current = source;
             }
             writeItem(source);
@@ -52,7 +52,7 @@ public abstract class CollectionSubscriber<T extends SiriEntity, P extends Defau
     }
 
     public Date getLastModified() {
-        return siri.xlite.common.CacheControl.getLastModified(current);
+        return CacheControl.getLastModified(current);
     }
 
     protected abstract void writeItem(T t);

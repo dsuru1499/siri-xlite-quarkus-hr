@@ -63,7 +63,7 @@ public abstract class DefaultParameters implements Parameters {
         return (StringUtils.isNotEmpty(value) ? Double.valueOf(value) : null);
     }
 
-    public abstract Integer getSMaxAge();
+    public abstract Integer getSMaxage();
 
     public abstract Integer getMaxAge();
 

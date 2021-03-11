@@ -1,8 +1,8 @@
 # server configuration
-"%dev":
-  quarkus:
-    http:
-      port: 8181
+#"%dev":
+#  quarkus:
+#    http:
+#      port: 8181
 quarkus:
 
   http:

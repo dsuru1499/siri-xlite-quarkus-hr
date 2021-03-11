@@ -8,6 +8,10 @@
     <version>1.0.0-SNAPSHOT</version>
     <properties>
         <compiler-plugin.version>3.8.1</compiler-plugin.version>
+        <hibernate.version>5.4.28.Final</hibernate.version>
+        <infinispan.version>12.0.1.Final</infinispan.version>
+        <jamon.version>2.81</jamon.version>
+        <lombok.version>1.18.16</lombok.version>
         <maven.compiler.parameters>true</maven.compiler.parameters>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
@@ -18,18 +22,7 @@
         <quarkus.platform.group-id>io.quarkus</quarkus.platform.group-id>
         <quarkus.platform.version>1.12.1.Final</quarkus.platform.version>
         <surefire-plugin.version>3.0.0-M5</surefire-plugin.version>
-
-        <hibernate.version>5.4.28.Final</hibernate.version>
-        <infinispan.version>12.0.1.Final</infinispan.version>
-        <jamon.version>2.81</jamon.version>
-        <lombok.version>1.18.16</lombok.version>
     </properties>
-    <repositories>
-        <repository>
-            <id>local-maven-repo</id>
-            <url>file:///${basedir}/repository</url>
-        </repository>
-    </repositories>
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -69,12 +62,11 @@
             <artifactId>quarkus-junit5</artifactId>
             <scope>test</scope>
         </dependency>
-        <!--        <dependency>-->
-        <!--            <groupId>io.rest-assured</groupId>-->
-        <!--            <artifactId>rest-assured</artifactId>-->
-        <!--            <scope>test</scope>-->
-        <!--        </dependency>-->
-
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-config-yaml</artifactId>
@@ -84,18 +76,7 @@
             <artifactId>quarkus-infinispan-embedded</artifactId>
             <version>1.6.1.Final</version>
         </dependency>
-        <!--        <dependency>-->
-        <!--            <groupId>io.quarkus</groupId>-->
-        <!--            <artifactId>quarkus-flyway</artifactId>-->
-        <!--        </dependency>-->
-        <!--        <dependency>-->
-        <!--            <groupId>io.quarkus</groupId>-->
-        <!--            <artifactId>quarkus-agroal</artifactId>-->
-        <!--        </dependency>-->
-        <!--        <dependency>-->
-        <!--            <groupId>io.quarkus</groupId>-->
-        <!--            <artifactId>quarkus-jdbc-postgresql</artifactId>-->
-        <!--        </dependency>-->
+
         <!-- Rtree Dependencies -->
         <dependency>
             <groupId>com.github.davidmoten</groupId>
@@ -112,6 +93,19 @@
             <artifactId>mutiny-rxjava</artifactId>
         </dependency>
 
+        <!-- JEE Dependencies -->
+        <dependency>
+            <groupId>com.sun.xml.ws</groupId>
+            <artifactId>jaxws-ri</artifactId>
+            <version>2.3.2</version>
+            <type>pom</type>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-jpamodelgen</artifactId>
+            <version>${hibernate.version}</version>
+        </dependency>
+
         <!-- Siri Dependencies -->
         <dependency>
             <groupId>siri</groupId>
@@ -119,7 +113,7 @@
             <version>1.0.0</version>
         </dependency>
 
-        <!-- Utilities Dependencies -->
+        <!-- Utility Dependencies -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
@@ -161,18 +155,69 @@
             <version>27.1-jre</version>
         </dependency>
     </dependencies>
+    <repositories>
+        <repository>
+            <id>local-maven-repo</id>
+            <url>file:///${basedir}/repository</url>
+        </repository>
+    </repositories>
     <build>
         <plugins>
+            <plugin>
+                <groupId>com.helger.maven</groupId>
+                <artifactId>jaxws-maven-plugin</artifactId>
+                <version>2.6.2</version>
+                <configuration>
+                    <wsdlDirectory>${basedir}/src/main/resources/xsd</wsdlDirectory>
+                    <wsdlFiles>
+                        <wsdlFile>siri_wsProducer-Document.wsdl</wsdlFile>
+                    </wsdlFiles>
+                    <wsdlLocation>siri_wsProducer-Document.wsdl</wsdlLocation>
+                    <sourceDestDir>${basedir}/target/generated-sources</sourceDestDir>
+                    <vmArgs>
+                        <vmArg>-Djavax.xml.accessExternalDTD=all</vmArg>
+                        <vmArg>-Djavax.xml.accessExternalSchema=all</vmArg>
+                    </vmArgs>
+                    <args>
+                        <arg>-b</arg>
+                        <arg>${basedir}/src/main/resources/xsd/bindings.xml</arg>
+                    </args>
+                </configuration>
+                <!-- mvn jaxws:wsimport -->
+                <executions>
+                    <execution>
+                        <id>generate-sources</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>wsimport</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <id>test</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${basedir}/target/generated-sources</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-maven-plugin</artifactId>
                 <version>${quarkus-plugin.version}</version>
                 <extensions>true</extensions>
-                <configuration>
-                    <source>${maven.compiler.source}</source>
-                    <target>${maven.compiler.target}</target>
-                    <workingDir>${project.basedir}</workingDir>
-                </configuration>
                 <executions>
                     <execution>
                         <goals>
@@ -182,6 +227,11 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                    <workingDir>${project.basedir}</workingDir>
+                </configuration>
             </plugin>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -210,49 +260,6 @@
                         <maven.home>${maven.home}</maven.home>
                     </systemPropertyVariables>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>3.0.0</version>
-                <executions>
-                    <execution>
-                        <id>build siri-lite-react</id>
-                        <phase>generate-resources</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>npm</executable>
-                            <arguments>
-                                <argument>run-script</argument>
-                                <argument>build</argument>
-                            </arguments>
-                            <workingDirectory>${basedir}/../siri-xlite-cli</workingDirectory>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <artifactId>maven-resources-plugin</artifactId>
-                <version>3.2.0</version>
-                <executions>
-                    <execution>
-                        <id>copy siri-xlite-cli</id>
-                        <phase>generate-resources</phase>
-                        <goals>
-                            <goal>copy-resources</goal>
-                        </goals>
-                        <configuration>
-                            <outputDirectory>${basedir}/src/main/resources/public/siri-xlite-cli</outputDirectory>
-                            <resources>
-                                <resource>
-                                    <directory>${basedir}/../siri-xlite-cli/build</directory>
-                                </resource>
-                            </resources>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

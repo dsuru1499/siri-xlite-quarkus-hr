@@ -43,7 +43,6 @@ public class EstimatedVehiculeJourneyService extends SiriService implements Esti
     public void handle(RoutingContext context) {
         try {
             Monitor monitor = MonitorFactory.start(ESTIMATED_VEHICLE_JOURNEY);
-//            log(context.request());
 
             final EstimatedVehiculeJourneySubscriber subscriber = new EstimatedVehiculeJourneySubscriber();
             configure(subscriber, context)

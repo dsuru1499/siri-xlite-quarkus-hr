@@ -48,7 +48,7 @@ public class StopMonitoringService extends SiriService implements StopMonitoring
     public void handle(final RoutingContext context) {
         try {
             Monitor monitor = MonitorFactory.start(STOP_MONITORING);
-            // log(context.request());
+
             final StopMonitoringSubscriber subscriber = new StopMonitoringSubscriber();
             configure(subscriber, context)
                     .onItem().transformToMulti(t -> stream(t, context))
@@ -96,7 +96,7 @@ public class StopMonitoringService extends SiriService implements StopMonitoring
     }
 
     private Uni<Void> onComplete(StopMonitoringSubscriber subscriber, RoutingContext context) {
-        long lifespan = configuration.getStopMonitoring().getSMaxAge();
+        long lifespan = configuration.getStopMonitoring().getSMaxage();
         cache.put(context.request().uri(), subscriber.getLastModified(), lifespan);
         return Uni.createFrom().voidItem();
     }

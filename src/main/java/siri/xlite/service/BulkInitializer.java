@@ -211,7 +211,7 @@ public class BulkInitializer {
                                 .operatorRef(agency.agencyId())
                                 .directionName(trip.tripHeadSign())
                                 .publishedLineName(route.routeLongName())
-                                .routeRef(trip.tripId())
+                                .routeRef(route.routeId())
                                 .vehicleModes(route.routeType().ordinal())
                                 .journeyPatternName(trip.tripId())
                                 .journeyPatternRef(trip.tripId())

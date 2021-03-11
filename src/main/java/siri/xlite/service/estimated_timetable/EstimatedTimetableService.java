@@ -41,7 +41,6 @@ public class EstimatedTimetableService extends SiriService implements EstimatedT
     public void handle(final RoutingContext context) {
         try {
             Monitor monitor = MonitorFactory.start(ESTIMATED_TIMETABLE);
-            // log(context.request());
 
             final EstimatedTimetableSubscriber subscriber = new EstimatedTimetableSubscriber();
             Multi<VehicleJourney> result = configure(subscriber, context).onItem()
@@ -73,7 +72,7 @@ public class EstimatedTimetableService extends SiriService implements EstimatedT
     }
 
     private Uni<Void> onComplete(EstimatedTimetableSubscriber subscriber, RoutingContext context) {
-        long lifespan = configuration.getEstimatedTimetable().getSMaxAge();
+        long lifespan = configuration.getEstimatedTimetable().getSMaxage();
         cache.put(context.request().uri(), subscriber.getLastModified(), lifespan);
         return Uni.createFrom().voidItem();
     }

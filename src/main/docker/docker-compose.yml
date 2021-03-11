@@ -23,16 +23,28 @@ services:
     ports:
       - "8080:8080"
       - "8443:8443"
+    user: "1001:1001"
     volumes:
       - /tmp/siri:/tmp/siri:z
 
-  nuster:
+  varnish:
     build:
       context: "../../../"
-      dockerfile: "src/main/docker/nuster/Dockerfile"
+      dockerfile: "src/main/docker/varnish/Dockerfile"
     depends_on:
       - "siri-xlite"
+    tmpfs: /var/lib/varnish:exec
+
+  haproxy:
+    build:
+      context: "../../../"
+      dockerfile: "src/main/docker/haproxy/Dockerfile"
+    depends_on:
+      - "varnish"
     ports:
       - "80:80"
       - "443:443"
+    sysctls:
+      - net.ipv4.ip_unprivileged_port_start=0
+
 

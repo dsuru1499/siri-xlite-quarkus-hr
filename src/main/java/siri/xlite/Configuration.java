@@ -9,8 +9,6 @@ import lombok.Setter;
 @Setter
 public class Configuration {
 
-    private Integer port = 8443;
-
     private ServiceConfiguration linesDiscovery;
     private ServiceConfiguration stopPointsDiscovery;
     private ServiceConfiguration stopMonitoring;
@@ -21,6 +19,6 @@ public class Configuration {
     @Setter
     public static class ServiceConfiguration {
         public Integer maxAge = 0;
-        public Integer sMaxAge = 0;
+        public Integer sMaxage = 0;
     }
 }

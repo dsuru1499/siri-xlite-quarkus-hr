@@ -40,14 +40,15 @@ public abstract class SiriSubscriber<T extends SiriEntity, P extends siri.xlite.
     protected JsonGenerator writer;
 
     public static String baseURI(HttpServerRequest request) {
-        URL url = null;
-        try {
-            url = new URL(request.absoluteURI());
-        } catch (MalformedURLException e) {
-            ExceptionUtils.wrapAndThrow(e);
-        }
-
-        return url.getProtocol() + "://" + url.getAuthority() + APPLICATION;
+//        URL url = null;
+//        try {
+//            url = new URL(request.absoluteURI());
+//        } catch (MalformedURLException e) {
+//            ExceptionUtils.wrapAndThrow(e);
+//        }
+//
+//        return url.getProtocol() + "://" + url.getAuthority() + APPLICATION;
+        return APPLICATION;
     }
 
     public void configure(P parameters, RoutingContext context) {
@@ -99,28 +100,40 @@ public abstract class SiriSubscriber<T extends SiriEntity, P extends siri.xlite.
 
     protected void writeNotModified() throws Exception {
         writer.close();
+        log(context.request());
         HttpServerResponse response = this.context.response()
                 .putHeader(HttpHeaders.CONTENT_TYPE, CONTENT_TYPE_VALUE)
                 .putHeader(HttpHeaders.CACHE_CONTROL,
-                        Arrays.asList(siri.xlite.common.CacheControl.MUST_REVALIDATE, siri.xlite.common.CacheControl.PROXY_REVALIDATE,
-                                siri.xlite.common.CacheControl.S_MAX_AGE + parameters.getSMaxAge(),
-                                siri.xlite.common.CacheControl.MAX_AGE + parameters.getMaxAge()))
-                .putHeader(HttpHeaders.LAST_MODIFIED, DateTimeUtils.toRFC1123(siri.xlite.common.CacheControl.getLastModified(context)))
+                        Arrays.asList(CacheControl.S_MAX_AGE + parameters.getSMaxage(),
+                                CacheControl.MAX_AGE + parameters.getMaxAge(),
+                                CacheControl.MUST_REVALIDATE,  CacheControl.PROXY_REVALIDATE))
+                .putHeader(HttpHeaders.LAST_MODIFIED, DateTimeUtils.toRFC1123(CacheControl.getLastModified(context)))
                 .setStatusCode(HttpURLConnection.HTTP_NOT_MODIFIED);
-//        log(response);
+        log(response);
         response.end();
     }
 
     protected void writeResponse(Date lastModified) {
+        log(context.request());
         HttpServerResponse response = this.context.response()
                 .putHeader(HttpHeaders.CONTENT_TYPE, CONTENT_TYPE_VALUE)
                 .putHeader(HttpHeaders.CACHE_CONTROL,
-                        Arrays.asList(siri.xlite.common.CacheControl.MUST_REVALIDATE, siri.xlite.common.CacheControl.PROXY_REVALIDATE,
-                                siri.xlite.common.CacheControl.S_MAX_AGE + parameters.getSMaxAge(),
-                                siri.xlite.common.CacheControl.MAX_AGE + parameters.getMaxAge()))
+                        Arrays.asList(CacheControl.S_MAX_AGE + parameters.getSMaxage(),
+                                CacheControl.MAX_AGE + parameters.getMaxAge(),
+                                CacheControl.MUST_REVALIDATE,  CacheControl.PROXY_REVALIDATE))
                 .putHeader(HttpHeaders.LAST_MODIFIED, DateTimeUtils.toRFC1123(lastModified));
-        // log(response);
+        log(response);
         response.end(out.toString());
+    }
+
+    protected void log(HttpServerRequest request) {
+        log.info(siri.xlite.common.Color.GREEN + "[DSU] GET " + request.absoluteURI() + siri.xlite.common.Color.NORMAL);
+        log.info(siri.xlite.common.Color.GREEN + "[DSU] GET " + request.host() + siri.xlite.common.Color.NORMAL);
+        MultiMap headers = request.headers();
+        for (String key : headers.names()) {
+            String value = String.join(",", headers.getAll(key));
+            log.info(siri.xlite.common.Color.GREEN + key + "=" + value + siri.xlite.common.Color.NORMAL);
+        }
     }
 
     private void log(HttpServerResponse response) {
