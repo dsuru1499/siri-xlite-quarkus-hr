@@ -14,8 +14,8 @@ vcl 4.1;
 import directors;    # load the directors
 
 acl purge {
-        "localhost";
-        "172.19.0.0"/24;
+    "172.19.0.0"/24;
+	"127.0.0.1";
 }
 
 # Default backend definition. Set this to point to your content server.

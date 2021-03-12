@@ -9,7 +9,6 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
 import siri.xlite.common.marshaller.json.SiriExceptionMarshaller;
@@ -18,8 +17,6 @@ import siri.xlite.model.SiriEntity;
 import javax.inject.Inject;
 import java.io.ByteArrayOutputStream;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.Arrays;
 import java.util.Date;
 
@@ -40,14 +37,6 @@ public abstract class SiriSubscriber<T extends SiriEntity, P extends siri.xlite.
     protected JsonGenerator writer;
 
     public static String baseURI(HttpServerRequest request) {
-//        URL url = null;
-//        try {
-//            url = new URL(request.absoluteURI());
-//        } catch (MalformedURLException e) {
-//            ExceptionUtils.wrapAndThrow(e);
-//        }
-//
-//        return url.getProtocol() + "://" + url.getAuthority() + APPLICATION;
         return APPLICATION;
     }
 
@@ -106,7 +95,8 @@ public abstract class SiriSubscriber<T extends SiriEntity, P extends siri.xlite.
                 .putHeader(HttpHeaders.CACHE_CONTROL,
                         Arrays.asList(CacheControl.S_MAX_AGE + parameters.getSMaxage(),
                                 CacheControl.MAX_AGE + parameters.getMaxAge(),
-                                CacheControl.MUST_REVALIDATE,  CacheControl.PROXY_REVALIDATE))
+                                CacheControl.MUST_REVALIDATE,
+                                CacheControl.PROXY_REVALIDATE))
                 .putHeader(HttpHeaders.LAST_MODIFIED, DateTimeUtils.toRFC1123(CacheControl.getLastModified(context)))
                 .setStatusCode(HttpURLConnection.HTTP_NOT_MODIFIED);
         log(response);
@@ -120,7 +110,8 @@ public abstract class SiriSubscriber<T extends SiriEntity, P extends siri.xlite.
                 .putHeader(HttpHeaders.CACHE_CONTROL,
                         Arrays.asList(CacheControl.S_MAX_AGE + parameters.getSMaxage(),
                                 CacheControl.MAX_AGE + parameters.getMaxAge(),
-                                CacheControl.MUST_REVALIDATE,  CacheControl.PROXY_REVALIDATE))
+                                CacheControl.MUST_REVALIDATE,
+                                CacheControl.PROXY_REVALIDATE))
                 .putHeader(HttpHeaders.LAST_MODIFIED, DateTimeUtils.toRFC1123(lastModified));
         log(response);
         response.end(out.toString());
