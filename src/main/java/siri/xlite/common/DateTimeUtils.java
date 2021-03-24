@@ -28,9 +28,12 @@ public class DateTimeUtils {
         return LocalTime.ofInstant(Instant.ofEpochMilli(date.getTime()), ZoneId.systemDefault());
     }
 
-    public static Date toDate(LocalTime time) {
-        Instant instant = time.atDate(LocalDate.of(1970, 1, 1)).atZone(ZoneId.systemDefault()).toInstant();
-        return Date.from(instant);
+    public static Time now() {
+        return Time.valueOf(LocalTime.now());
+    }
+
+    public static Time toTime(LocalTime time) {
+        return Time.valueOf(time);
     }
 
     public static Date toDate(LocalDateTime dateTime) {

@@ -54,8 +54,10 @@ public class BulkInitializer {
     private static final String ARCHIVE = "data.zip";
     private static final String DATA_DIR = "siri";
     private static final String UPDATE_SEQUENCE = "SELECT setval('%1$s_seq', max(id)) FROM %1$s;";
+
     private final MultiValuedMap<String, String> lineRefs = new HashSetValuedHashMap<>();
     private final MultiValuedMap<String, Map<String, String>> destinations = new HashSetValuedHashMap<>();
+
     @Inject
     Mutiny.SessionFactory factory;
 

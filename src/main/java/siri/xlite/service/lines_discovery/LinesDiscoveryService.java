@@ -36,8 +36,7 @@ public class LinesDiscoveryService extends SiriService implements LinesDiscovery
     @Inject
     EtagsRepository cache;
 
-    @Route(path = APPLICATION + SEP + LINES_DISCOVERY,
-            methods = HttpMethod.GET)
+    @Route(path = APPLICATION + SEP + LINES_DISCOVERY, methods = HttpMethod.GET)
     public void handle(RoutingContext context) {
         try {
             final Monitor monitor = MonitorFactory.start(LINES_DISCOVERY);

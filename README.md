@@ -91,7 +91,6 @@ Version Quarkus / GraalVM / Hibernate reactive / PostgreQGL du serveur siri-xlit
     - version beta 
     - support JPA imcomplet
     - cache de 2nde niveau local uniquement
-    - cache de collections non fonctionnel
     - mapping type postgres non disponible
     - mapping sql natif  incomplet
     - incompatibilité driver jdbc & reactive (flyway et datasource jdbc indisponible)

@@ -70,10 +70,10 @@ public class StopPointRepository extends ReactiveRepository<StopPoint, String> {
                     polygon[UPPER_LEFT][X], polygon[BOTTOM_RIGHT][Y],
                     polygon[BOTTOM_RIGHT][X], polygon[UPPER_LEFT][Y]);
 
-            Observable<String> result = RxJavaInterop.toV2Observable(rtree.search(rectangle)
+            Observable<String> observable = RxJavaInterop.toV2Observable(rtree.search(rectangle)
                     .map(Entry::value));
             MultiConverter<? super Observable<String>, String> converter = FromObservable.INSTANCE;
-            return Multi.createFrom().converter(converter, result)
+            return Multi.createFrom().converter(converter, observable)
                     .onItem().transformToUniAndConcatenate(key -> session.find(StopPoint.class, key));
         });
     }

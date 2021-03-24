@@ -21,7 +21,9 @@ import siri.xlite.repositories.VehicleJourneyRepository;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import java.util.Comparator;
+import java.sql.Time;
+import java.util.TreeMap;
+import java.util.function.Function;
 
 import static siri.xlite.service.stop_monitoring.StopMonitoringParameters.MONITORING_REF;
 
@@ -53,7 +55,8 @@ public class StopMonitoringService extends SiriService implements StopMonitoring
             configure(subscriber, context)
                     .onItem().transformToMulti(t -> stream(t, context))
                     .onCompletion().call(() -> onComplete(subscriber, context))
-                    .onTermination().invoke(() -> log.info(Color.YELLOW + monitor.stop() + Color.NORMAL)).subscribe(subscriber);
+                    .onTermination().invoke(() -> log.info(Color.YELLOW + monitor.stop() + Color.NORMAL))
+                    .subscribe(subscriber);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
         }
@@ -73,16 +76,35 @@ public class StopMonitoringService extends SiriService implements StopMonitoring
     private Multi<Tuple<VehicleJourney, Integer>> stream(StopMonitoringParameters parameters,
                                                          RoutingContext context) throws NotModifiedException {
         String uri = context.request().uri();
+        Time now = DateTimeUtils.now();
+
+        Function<Tuple<VehicleJourney, Integer>, Time> extractor = t -> t.left().calls().get(t.right()).expectedDepartureTime();
+
+//        Supplier<SortedMap<Time, Tuple<VehicleJourney, Integer>>> supplier = () -> {
+//            Comparator<? super Tuple<VehicleJourney, Integer>> comparator = Comparator.comparing(extractor);
+//            return new TreeMap(comparator);
+//        };
+
 
         return stopPointRepository.findByMonitoringRef(parameters.getMonitoringRef())
                 .map(StopPoint::stopPointRef).collect().asList().onItem()
                 .transformToMulti(stopPointRefs -> vehicleJourneyRepository.findByStopPointRefs(stopPointRefs))
                 .concatMap(t -> Multi.createFrom().range(0, t.calls().size())
-                        .map(i -> Tuple.of(t, i))).collect().asList()
-                .onItem().transformToMulti(list -> {
-                    list.sort(Comparator.comparing(t -> t.left().calls().get(t.right()).expectedDepartureTime()));
-                    return Multi.createFrom().iterable(list);
-                });
+                        .map(i -> Tuple.of(t, i)))
+                .filter(t -> {
+                    Time expectedDepartureTime = extractor.apply(t);
+                    return expectedDepartureTime.after(now);
+                })
+                .collect().in(TreeMap<Time, Tuple<VehicleJourney,Integer>>::new, (map, t) -> map.put(extractor.apply(t), t))
+                .onItem().transformToMulti(t -> Multi.createFrom().iterable(t.values()));
+
+
+//                .onItem().transformToMulti(list -> {
+//                    t.left().calls().get(t.right()).expectedDepartureTime()
+//                    list.stream().filter()
+//                    list.sort(Comparator.comparing(t ->));
+//                    return Multi.createFrom().iterable(list);
+//                });
         // ! PB mapping native sql
         // return vehicleJourneyRepository.findByMonitoringRef(session, parameters.getMonitoringRef())
         // .concatMap(t -> {

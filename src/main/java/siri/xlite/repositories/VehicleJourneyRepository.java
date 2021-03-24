@@ -110,9 +110,9 @@ public class VehicleJourneyRepository extends ReactiveRepository<VehicleJourney,
         Predicate expectedDepartureTimePredicate = builder.greaterThan(call.get(Call_.expectedDepartureTime), now);
 
         CriteriaQuery<VehicleJourney> criteria = query.select(root).distinct(true)
-                .where(stopPointPredicate)
-                .where(builder.and(stopPointPredicate, expectedDepartureTimePredicate))
-                .orderBy(builder.asc(call.get(Call_.expectedDepartureTime)));
+                .where(stopPointPredicate);
+//                .where(builder.and(stopPointPredicate, expectedDepartureTimePredicate))
+//                .orderBy(builder.asc(call.get(Call_.expectedDepartureTime)));
 
         return session.createQuery(criteria).getResults();
     }
